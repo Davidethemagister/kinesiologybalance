@@ -31,8 +31,7 @@ export function PotCreationPanel() {
   const subBranches = pot.branch === 'physical' ? PHYSICAL_SUB_BRANCHES : pot.branch === 'energetic' ? ENERGETIC_SUB_BRANCHES : []
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
-      <h1 className="text-2xl font-semibold text-slate-800 mb-1">Pot Creation</h1>
+    <div className="max-w-5xl mx-auto pb-24">
       <p className="text-slate-500 mb-6">
         Working on: <span className="font-medium text-slate-700">{activeGoal.goalStatement}</span>
       </p>

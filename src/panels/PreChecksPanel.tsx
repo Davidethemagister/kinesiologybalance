@@ -54,8 +54,7 @@ export function PreChecksPanel() {
   const askingCheck = state.preChecks.find((c) => c.id === askEmotionForId)
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
-      <h1 className="text-2xl font-semibold text-slate-800 mb-1">Pre-Checks</h1>
+    <div className="max-w-5xl mx-auto pb-24">
       <p className="text-slate-500 mb-6">Test each item strong or weak.</p>
 
       <div className="space-y-3">

@@ -34,8 +34,7 @@ export function GoalPanel() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
-      <h1 className="text-2xl font-semibold text-slate-800 mb-1">Issue &amp; Goal</h1>
+    <div className="max-w-5xl mx-auto pb-24">
       <p className="text-slate-500 mb-6">Define the issue and goal statement, then test.</p>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
