@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useReducer, useRef, type Dispatch, type ReactNode } from 'react'
 import type {
   PreCheck,
   PreCheckRound,
@@ -120,7 +120,9 @@ function makeInitialClosing(goalId: string): Closing {
   }
 }
 
-function initialState(): SessionState {
+// Exported so callers that own session persistence (e.g. ClientsContext, or a
+// future Supabase-backed loader) can seed a brand-new session's starting data.
+export function createInitialSessionState(): SessionState {
   const firstRound = makePreCheckRound(1)
   return {
     preCheckRounds: [firstRound],
@@ -314,8 +316,29 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null)
 
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, initialState)
+interface SessionProviderProps {
+  children: ReactNode
+  // Seeds the reducer from an existing session's saved data (e.g. reopening a
+  // past client visit) instead of always starting a brand-new session.
+  initialState?: SessionState
+  // Fired after every state change so an owner (ClientsContext today, Supabase
+  // later) can persist the latest snapshot. Not used for the initial mount value.
+  onChange?: (state: SessionState) => void
+}
+
+export function SessionProvider({ children, initialState: initialStateProp, onChange }: SessionProviderProps) {
+  const [state, dispatch] = useReducer(reducer, undefined, () => initialStateProp ?? createInitialSessionState())
+
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    onChangeRef.current?.(state)
+  }, [state])
 
   const value: SessionContextValue = {
     state,

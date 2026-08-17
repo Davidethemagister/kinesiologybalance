@@ -1,6 +1,14 @@
-import { useState } from 'react'
-import { SessionProvider, useSession } from './context/SessionContext'
+import { useEffect, useRef, useState } from 'react'
+import { SessionProvider, useSession, type SessionState } from './context/SessionContext'
 import { SettingsProvider, useSettings } from './context/SettingsContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { ClientsProvider, useClients, type SessionRecord } from './context/ClientsContext'
+import { LoginView } from './views/LoginView'
+import { ClientListView } from './views/ClientListView'
+import { ClientDetailView } from './views/ClientDetailView'
+import { exportClientData } from './lib/dataExport'
+import { loadSessionState } from './lib/loadSession'
+import { saveSessionState } from './lib/sessionSync'
 import { PreChecksPanel } from './panels/PreChecksPanel'
 import { GoalPanel } from './panels/GoalPanel'
 import { IntegrationPanel } from './panels/IntegrationPanel'
@@ -10,7 +18,6 @@ import { ClosingPanel } from './panels/ClosingPanel'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { AFFIRMATIONS } from './data/affirmations'
 import type { PanelId } from './types'
-import type { SessionState } from './context/SessionContext'
 
 type ViewId = 'home' | 'settings' | PanelId
 const TOTAL_STEPS = 6
@@ -224,12 +231,180 @@ function AppShell() {
   )
 }
 
+type Route =
+  | { kind: 'clients' }
+  | { kind: 'client-detail'; clientId: string }
+  | { kind: 'session'; sessionId: string; clientId: string }
+
+const SAVE_DEBOUNCE_MS = 600
+
+function ClientSessionShell({
+  clientName,
+  session,
+  onBack,
+  onToggleStatus,
+}: {
+  clientName: string
+  session: SessionRecord
+  onBack: () => void
+  onToggleStatus: () => void
+}) {
+  const [loadedState, setLoadedState] = useState<SessionState | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    loadSessionState(session.id)
+      .then((data) => {
+        if (!cancelled) setLoadedState(data)
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load session')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session.id])
+
+  function handleChange(data: SessionState) {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      saveSessionState(session.id, data).catch((err) => {
+        console.error('Failed to save session', err)
+      })
+    }, SAVE_DEBOUNCE_MS)
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center gap-3">
+        <p className="text-rose-600">Couldn't load this session: {loadError}</p>
+        <button onClick={onBack} className="text-sage-dark font-semibold">
+          ← Back to {clientName}
+        </button>
+      </div>
+    )
+  }
+
+  if (!loadedState) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading session…</div>
+  }
+
+  return (
+    <SessionProvider initialState={loadedState} onChange={handleChange}>
+      <div className="min-h-screen flex flex-col">
+        <div className="bg-white border-b border-slate-200 px-4 md:px-8 py-2 flex items-center justify-between gap-3">
+          <button onClick={onBack} className="text-sm font-semibold text-sage-dark truncate">
+            ← {clientName}
+          </button>
+          <button
+            onClick={onToggleStatus}
+            className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${
+              session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+            }`}
+          >
+            {session.status === 'completed' ? 'Completed' : 'In progress'}
+          </button>
+        </div>
+        <AppShell />
+      </div>
+    </SessionProvider>
+  )
+}
+
+function AppRouter() {
+  const [route, setRoute] = useState<Route>({ kind: 'clients' })
+  const { clients, loading, sessionsByClient, loadSessionsForClient, addClient, removeClient, startSession, setSessionStatus } =
+    useClients()
+
+  useEffect(() => {
+    if (route.kind === 'client-detail' || route.kind === 'session') {
+      loadSessionsForClient(route.clientId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.kind === 'clients' ? null : route.clientId])
+
+  if (route.kind === 'clients') {
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
+    return (
+      <ClientListView
+        clients={clients}
+        onSelectClient={(clientId) => setRoute({ kind: 'client-detail', clientId })}
+        onAddClient={(client) => addClient(client)}
+      />
+    )
+  }
+
+  const client = clients.find((c) => c.id === route.clientId)
+  if (!client) {
+    // Client no longer exists (e.g. just deleted), or clients haven't loaded yet — fall back to the list.
+    if (!loading) setRoute({ kind: 'clients' })
+    return null
+  }
+
+  const sessions = sessionsByClient[client.id]
+
+  if (route.kind === 'client-detail') {
+    if (!sessions) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
+    return (
+      <ClientDetailView
+        client={client}
+        sessions={sessions}
+        onBack={() => setRoute({ kind: 'clients' })}
+        onStartSession={async () => {
+          const sessionId = await startSession(client.id)
+          setRoute({ kind: 'session', sessionId, clientId: client.id })
+        }}
+        onOpenSession={(sessionId) => setRoute({ kind: 'session', sessionId, clientId: client.id })}
+        onDeleteClient={async () => {
+          await removeClient(client.id)
+          setRoute({ kind: 'clients' })
+        }}
+        onExportClient={() => exportClientData(client)}
+      />
+    )
+  }
+
+  const sessionRecord = sessions?.find((s) => s.id === route.sessionId)
+  if (!sessionRecord) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
+  }
+
+  return (
+    <ClientSessionShell
+      clientName={client.fullName}
+      session={sessionRecord}
+      onBack={() => setRoute({ kind: 'client-detail', clientId: client.id })}
+      onToggleStatus={() =>
+        setSessionStatus(sessionRecord.id, client.id, sessionRecord.status === 'completed' ? 'in_progress' : 'completed')
+      }
+    />
+  )
+}
+
+function AuthGate() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
+  }
+  if (!user) {
+    return <LoginView />
+  }
+  return (
+    <ClientsProvider>
+      <AppRouter />
+    </ClientsProvider>
+  )
+}
+
 export default function App() {
   return (
     <SettingsProvider>
-      <SessionProvider>
-        <AppShell />
-      </SessionProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
     </SettingsProvider>
   )
 }
