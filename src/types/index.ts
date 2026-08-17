@@ -18,12 +18,20 @@ export type StrongWeak = 'strong' | 'weak'
 
 export interface PreCheck {
   id: string
+  voiceId: string | null // links back to a STANDARD_CHECKS/SURROGATION_CHECK id for settings filtering; null for custom checks
   name: string
   source: 'standard' | 'surrogation' | 'custom'
   result: StrongWeak | null
   emotionAttached: boolean | null
   emotionEntry: EmotionEntry | null
   notes: string
+}
+
+export interface PreCheckRound {
+  id: string
+  roundNumber: number
+  createdAt: string
+  checks: PreCheck[]
 }
 
 export interface Goal {
@@ -37,6 +45,7 @@ export interface Goal {
 export type Level = 'mental' | 'physical' | 'emotional' | 'spiritual' | 'other-realities'
 
 export interface Affirmation {
+  voiceId: string
   statement: string
   resultsByLevel: Record<Level, StrongWeak | null>
 }
@@ -72,4 +81,11 @@ export interface Closing {
   homework: string
 }
 
-export type PanelId = 'pre-checks' | 'goal' | 'integration' | 'pot-creation' | 'closing'
+export interface Intervention {
+  goalId: string
+  technique: string
+  retestResult: StrongWeak | null
+  notes: string
+}
+
+export type PanelId = 'pre-checks' | 'goal' | 'integration' | 'pot-creation' | 'closing' | 'intervention'

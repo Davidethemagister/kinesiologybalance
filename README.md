@@ -1,6 +1,8 @@
 # Kinesio Session
 
-A single-panel, adaptive session-tracking tool for an Applied Kinesiology practitioner. Built to be used live, one-handed, during hands-on client sessions — there is no locked linear "wizard" flow; the practitioner can jump between the five panels (Pre-Checks, Goal, Integration, Pot Creation, Closing) at any point.
+A single-panel, adaptive session-tracking tool for an Applied Kinesiology practitioner. Built to be used live, one-handed, during hands-on client sessions — there is no locked linear "wizard" flow; the practitioner can jump between the six panels (Pre-Checks, Goal, Integration, Pot Creation, Closing, Intervention) at any point.
+
+Pre-Checks supports repeating the standard test set in multiple rounds (e.g. if the body calls for a retest) — each round is kept separate, past rounds are read-only, and nothing is overwritten. A Settings tab (gear icon, top right) lets each practitioner toggle individual Pre-Check and Integration-affirmation items on/off to match their own protocol; this is saved to the browser's `localStorage`.
 
 ## Tech stack
 
@@ -29,9 +31,9 @@ npm run build
 src/
   types/       Shared TypeScript types for the whole session data model
   data/        Static reference data (pre-check names, Five Element emotion chart, affirmations, pot branches)
-  context/     SessionContext — app-wide state via useReducer
+  context/     SessionContext (app-wide session state via useReducer) and SettingsContext (per-device voice toggles, persisted to localStorage)
   components/  Shared UI: EmotionChart (drill-down modal), StrongWeakToggle, Modal, EmptyGoalState
-  panels/      The five top-level panels (PreChecks, Goal, Integration, PotCreation, Closing)
+  panels/      The six top-level panels (PreChecks, Goal, Integration, PotCreation, Closing, Intervention) plus Settings
 ```
 
 ## Design notes

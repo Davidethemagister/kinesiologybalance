@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import { SessionProvider, useSession } from './context/SessionContext'
+import { SettingsProvider, useSettings } from './context/SettingsContext'
 import { PreChecksPanel } from './panels/PreChecksPanel'
 import { GoalPanel } from './panels/GoalPanel'
 import { IntegrationPanel } from './panels/IntegrationPanel'
 import { PotCreationPanel } from './panels/PotCreationPanel'
+import { InterventionPanel } from './panels/InterventionPanel'
 import { ClosingPanel } from './panels/ClosingPanel'
-import { AFFIRMATION_STATEMENTS } from './data/affirmations'
+import { SettingsPanel } from './panels/SettingsPanel'
+import { AFFIRMATIONS } from './data/affirmations'
 import type { PanelId } from './types'
 import type { SessionState } from './context/SessionContext'
 
-type ViewId = 'home' | PanelId
+type ViewId = 'home' | 'settings' | PanelId
+const TOTAL_STEPS = 6
 
 interface StepMeta {
   id: PanelId
@@ -19,7 +23,7 @@ interface StepMeta {
   soft: string
   softDeep: string
   softText: string
-  meta: (state: SessionState) => string
+  meta: (state: SessionState, enabledAffirmationCount: number) => string
 }
 
 const STEPS: StepMeta[] = [
@@ -31,7 +35,11 @@ const STEPS: StepMeta[] = [
     soft: 'bg-elementSoft-water',
     softDeep: 'bg-elementSoftDeep-water',
     softText: 'text-elementInk-water',
-    meta: (state) => `${state.preChecks.length} checks`,
+    meta: (state) => {
+      const round = state.preCheckRounds.find((r) => r.id === state.activePreCheckRoundId)
+      const roundLabel = round ? `Round ${round.roundNumber}` : ''
+      return `${round?.checks.length ?? 0} checks · ${roundLabel}`
+    },
   },
   {
     id: 'goal',
@@ -51,7 +59,7 @@ const STEPS: StepMeta[] = [
     soft: 'bg-elementSoft-fire',
     softDeep: 'bg-elementSoftDeep-fire',
     softText: 'text-elementInk-fire',
-    meta: () => `${AFFIRMATION_STATEMENTS.length} affirmations`,
+    meta: (_state, enabledAffirmationCount) => `${enabledAffirmationCount} affirmations`,
   },
   {
     id: 'pot-creation',
@@ -73,9 +81,27 @@ const STEPS: StepMeta[] = [
     softText: 'text-elementInk-metal',
     meta: () => 'Homework & next date',
   },
+  {
+    id: 'intervention',
+    index: 6,
+    tabLabel: 'Intervention',
+    title: 'Intervention',
+    soft: 'bg-sage/30',
+    softDeep: 'bg-sage',
+    softText: 'text-slate-800',
+    meta: () => 'Technique & retest',
+  },
 ]
 
-function HomeView({ onSelect, state }: { onSelect: (id: PanelId) => void; state: SessionState }) {
+function HomeView({
+  onSelect,
+  state,
+  enabledAffirmationCount,
+}: {
+  onSelect: (id: PanelId) => void
+  state: SessionState
+  enabledAffirmationCount: number
+}) {
   const activeGoal = state.goals.find((g) => g.id === state.activeGoalId)
 
   return (
@@ -89,21 +115,19 @@ function HomeView({ onSelect, state }: { onSelect: (id: PanelId) => void; state:
         )}
       </div>
       <div className="flex-1 grid grid-cols-2 md:grid-cols-3 auto-rows-fr gap-3 md:gap-5 px-4 md:px-8 pb-6 md:pb-8">
-        {STEPS.map((step, i) => (
+        {STEPS.map((step) => (
           <button
             key={step.id}
             onClick={() => onSelect(step.id)}
-            className={`${step.soft} ${step.softText} rounded-3xl p-5 md:p-7 text-left shadow-sm hover:shadow-md active:scale-[0.98] transition ${
-              i === 4
-                ? 'col-span-2 md:col-span-1 flex flex-row md:flex-col items-center md:items-stretch justify-between md:justify-between'
-                : 'flex flex-col justify-between'
-            }`}
+            className={`${step.soft} ${step.softText} rounded-3xl p-5 md:p-7 text-left shadow-sm hover:shadow-md active:scale-[0.98] transition flex flex-col justify-between`}
           >
             <div>
               <span className="block text-xs font-bold uppercase tracking-wide opacity-75">Step {step.index}</span>
               <span className="block text-xl md:text-2xl font-bold mt-1">{step.tabLabel}</span>
             </div>
-            <span className="block text-sm font-semibold opacity-80 mt-3">{step.meta(state)}</span>
+            <span className="block text-sm font-semibold opacity-80 mt-3">
+              {step.meta(state, enabledAffirmationCount)}
+            </span>
           </button>
         ))}
       </div>
@@ -114,7 +138,9 @@ function HomeView({ onSelect, state }: { onSelect: (id: PanelId) => void; state:
 function AppShell() {
   const [view, setView] = useState<ViewId>('home')
   const { state } = useSession()
+  const { isAffirmationVoiceEnabled } = useSettings()
   const currentStep = STEPS.find((s) => s.id === view)
+  const enabledAffirmationCount = AFFIRMATIONS.filter((a) => isAffirmationVoiceEnabled(a.id)).length
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
@@ -147,16 +173,39 @@ function AppShell() {
             )
           })}
         </nav>
+        <button
+          onClick={() => setView('settings')}
+          aria-label="Settings"
+          className={`flex-shrink-0 h-10 w-10 md:h-11 md:w-11 rounded-xl flex items-center justify-center text-lg transition-colors ${
+            view === 'settings' ? 'bg-sage text-slate-900' : 'bg-slate-100 text-slate-500'
+          }`}
+        >
+          ⚙
+        </button>
       </header>
 
       <main className="flex-1 flex flex-col">
-        {view === 'home' && <HomeView onSelect={setView} state={state} />}
+        {view === 'home' && (
+          <HomeView onSelect={setView} state={state} enabledAffirmationCount={enabledAffirmationCount} />
+        )}
+
+        {view === 'settings' && (
+          <div className="flex-1 flex flex-col">
+            <div className="bg-slate-100 text-slate-700 px-4 md:px-8 py-6 md:py-8">
+              <p className="text-xs md:text-sm font-bold uppercase tracking-wide opacity-75">Settings</p>
+              <h1 className="text-2xl md:text-4xl font-bold mt-1">Panel Voices</h1>
+            </div>
+            <div className="flex-1 px-4 md:px-8 py-6">
+              <SettingsPanel />
+            </div>
+          </div>
+        )}
 
         {currentStep && (
           <div className="flex-1 flex flex-col">
             <div className={`${currentStep.soft} ${currentStep.softText} px-4 md:px-8 py-6 md:py-8`}>
               <p className="text-xs md:text-sm font-bold uppercase tracking-wide opacity-75">
-                Step {currentStep.index} of 5
+                Step {currentStep.index} of {TOTAL_STEPS}
               </p>
               <h1 className="text-2xl md:text-4xl font-bold mt-1">{currentStep.title}</h1>
             </div>
@@ -166,6 +215,7 @@ function AppShell() {
               {view === 'integration' && <IntegrationPanel />}
               {view === 'pot-creation' && <PotCreationPanel />}
               {view === 'closing' && <ClosingPanel />}
+              {view === 'intervention' && <InterventionPanel />}
             </div>
           </div>
         )}
@@ -176,8 +226,10 @@ function AppShell() {
 
 export default function App() {
   return (
-    <SessionProvider>
-      <AppShell />
-    </SessionProvider>
+    <SettingsProvider>
+      <SessionProvider>
+        <AppShell />
+      </SessionProvider>
+    </SettingsProvider>
   )
 }

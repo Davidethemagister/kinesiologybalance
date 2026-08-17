@@ -1,28 +1,32 @@
 import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from 'react'
 import type {
   PreCheck,
+  PreCheckRound,
   Goal,
   IntegrationCheck,
   PotCreation,
   Closing,
+  Intervention,
   EmotionEntry,
   Level,
   StrongWeak,
 } from '../types'
-import { STANDARD_CHECK_NAMES, SURROGATION_CHECK_NAME } from '../data/preChecks'
-import { AFFIRMATION_STATEMENTS, LEVELS } from '../data/affirmations'
+import { STANDARD_CHECKS, SURROGATION_CHECK } from '../data/preChecks'
+import { AFFIRMATIONS, LEVELS } from '../data/affirmations'
 import { genId } from '../utils/id'
 
 // This state shape is intentionally flat and keyed by goalId for the
-// per-goal panels (Integration, Pot Creation, Closing) so it can later be
-// mirrored into Supabase tables (or localStorage) with minimal reshaping.
+// per-goal panels (Integration, Pot Creation, Intervention, Closing) so it can
+// later be mirrored into Supabase tables (or localStorage) with minimal reshaping.
 export interface SessionState {
-  preChecks: PreCheck[]
+  preCheckRounds: PreCheckRound[]
+  activePreCheckRoundId: string
   goals: Goal[]
   activeGoalId: string | null
   integrationChecks: Record<string, IntegrationCheck>
   potCreations: Record<string, PotCreation>
   closings: Record<string, Closing>
+  interventions: Record<string, Intervention>
 }
 
 function emptyLevelResults(): Record<Level, StrongWeak | null> {
@@ -35,10 +39,11 @@ function emptyLevelResults(): Record<Level, StrongWeak | null> {
   )
 }
 
-function makeInitialPreChecks(): PreCheck[] {
-  const standard: PreCheck[] = STANDARD_CHECK_NAMES.map((name) => ({
+function makeStandardChecks(): PreCheck[] {
+  const standard: PreCheck[] = STANDARD_CHECKS.map((voice) => ({
     id: genId(),
-    name,
+    voiceId: voice.id,
+    name: voice.name,
     source: 'standard',
     result: null,
     emotionAttached: null,
@@ -47,7 +52,8 @@ function makeInitialPreChecks(): PreCheck[] {
   }))
   const surrogation: PreCheck = {
     id: genId(),
-    name: SURROGATION_CHECK_NAME,
+    voiceId: SURROGATION_CHECK.id,
+    name: SURROGATION_CHECK.name,
     source: 'surrogation',
     result: null,
     emotionAttached: null,
@@ -57,13 +63,23 @@ function makeInitialPreChecks(): PreCheck[] {
   return [...standard, surrogation]
 }
 
+function makePreCheckRound(roundNumber: number): PreCheckRound {
+  return {
+    id: genId(),
+    roundNumber,
+    createdAt: new Date().toISOString(),
+    checks: makeStandardChecks(),
+  }
+}
+
 function makeInitialIntegration(goalId: string): IntegrationCheck {
   return {
     goalId,
     lifeEnergyPercent: null,
     stressOnGoalPercent: null,
-    affirmations: AFFIRMATION_STATEMENTS.map((statement) => ({
-      statement,
+    affirmations: AFFIRMATIONS.map((voice) => ({
+      voiceId: voice.id,
+      statement: voice.statement,
       resultsByLevel: emptyLevelResults(),
     })),
     sabotageCheck: null,
@@ -84,6 +100,15 @@ function makeInitialPot(goalId: string): PotCreation {
   }
 }
 
+function makeInitialIntervention(goalId: string): Intervention {
+  return {
+    goalId,
+    technique: '',
+    retestResult: null,
+    notes: '',
+  }
+}
+
 function makeInitialClosing(goalId: string): Closing {
   return {
     goalId,
@@ -96,61 +121,82 @@ function makeInitialClosing(goalId: string): Closing {
 }
 
 function initialState(): SessionState {
+  const firstRound = makePreCheckRound(1)
   return {
-    preChecks: makeInitialPreChecks(),
+    preCheckRounds: [firstRound],
+    activePreCheckRoundId: firstRound.id,
     goals: [],
     activeGoalId: null,
     integrationChecks: {},
     potCreations: {},
     closings: {},
+    interventions: {},
   }
 }
 
 type Action =
-  | { type: 'SET_PRECHECK_RESULT'; id: string; result: StrongWeak }
-  | { type: 'SET_PRECHECK_EMOTION_ATTACHED'; id: string; attached: boolean }
-  | { type: 'SET_PRECHECK_EMOTION_ENTRY'; id: string; entry: EmotionEntry }
-  | { type: 'SET_PRECHECK_NOTES'; id: string; notes: string }
-  | { type: 'ADD_CUSTOM_PRECHECK'; name: string }
+  | { type: 'SET_PRECHECK_RESULT'; roundId: string; id: string; result: StrongWeak }
+  | { type: 'SET_PRECHECK_EMOTION_ATTACHED'; roundId: string; id: string; attached: boolean }
+  | { type: 'SET_PRECHECK_EMOTION_ENTRY'; roundId: string; id: string; entry: EmotionEntry }
+  | { type: 'SET_PRECHECK_NOTES'; roundId: string; id: string; notes: string }
+  | { type: 'ADD_CUSTOM_PRECHECK'; roundId: string; name: string }
+  | { type: 'START_NEW_PRECHECK_ROUND' }
+  | { type: 'SET_ACTIVE_PRECHECK_ROUND'; roundId: string }
   | { type: 'ADD_ACCEPTED_GOAL'; issue: string; goalStatement: string }
   | { type: 'REORDER_GOALS'; orderedIds: string[] }
   | { type: 'SET_ACTIVE_GOAL'; id: string }
   | { type: 'PATCH_INTEGRATION'; goalId: string; patch: Partial<IntegrationCheck> }
-  | { type: 'SET_AFFIRMATION_LEVEL'; goalId: string; index: number; level: Level; result: StrongWeak }
+  | { type: 'SET_AFFIRMATION_LEVEL'; goalId: string; voiceId: string; level: Level; result: StrongWeak }
   | { type: 'PATCH_POT'; goalId: string; patch: Partial<PotCreation> }
+  | { type: 'PATCH_INTERVENTION'; goalId: string; patch: Partial<Intervention> }
   | { type: 'PATCH_CLOSING'; goalId: string; patch: Partial<Closing> }
+
+function patchRound(
+  rounds: PreCheckRound[],
+  roundId: string,
+  updateChecks: (checks: PreCheck[]) => PreCheck[],
+): PreCheckRound[] {
+  return rounds.map((round) => (round.id === roundId ? { ...round, checks: updateChecks(round.checks) } : round))
+}
 
 function reducer(state: SessionState, action: Action): SessionState {
   switch (action.type) {
     case 'SET_PRECHECK_RESULT':
       return {
         ...state,
-        preChecks: state.preChecks.map((c) => (c.id === action.id ? { ...c, result: action.result } : c)),
+        preCheckRounds: patchRound(state.preCheckRounds, action.roundId, (checks) =>
+          checks.map((c) => (c.id === action.id ? { ...c, result: action.result } : c)),
+        ),
       }
     case 'SET_PRECHECK_EMOTION_ATTACHED':
       return {
         ...state,
-        preChecks: state.preChecks.map((c) =>
-          c.id === action.id ? { ...c, emotionAttached: action.attached } : c,
+        preCheckRounds: patchRound(state.preCheckRounds, action.roundId, (checks) =>
+          checks.map((c) => (c.id === action.id ? { ...c, emotionAttached: action.attached } : c)),
         ),
       }
     case 'SET_PRECHECK_EMOTION_ENTRY':
       return {
         ...state,
-        preChecks: state.preChecks.map((c) => (c.id === action.id ? { ...c, emotionEntry: action.entry } : c)),
+        preCheckRounds: patchRound(state.preCheckRounds, action.roundId, (checks) =>
+          checks.map((c) => (c.id === action.id ? { ...c, emotionEntry: action.entry } : c)),
+        ),
       }
     case 'SET_PRECHECK_NOTES':
       return {
         ...state,
-        preChecks: state.preChecks.map((c) => (c.id === action.id ? { ...c, notes: action.notes } : c)),
+        preCheckRounds: patchRound(state.preCheckRounds, action.roundId, (checks) =>
+          checks.map((c) => (c.id === action.id ? { ...c, notes: action.notes } : c)),
+        ),
       }
     case 'ADD_CUSTOM_PRECHECK':
       return {
         ...state,
-        preChecks: [
-          ...state.preChecks,
+        preCheckRounds: patchRound(state.preCheckRounds, action.roundId, (checks) => [
+          ...checks,
           {
             id: genId(),
+            voiceId: null,
             name: action.name,
             source: 'custom',
             result: null,
@@ -158,8 +204,19 @@ function reducer(state: SessionState, action: Action): SessionState {
             emotionEntry: null,
             notes: '',
           },
-        ],
+        ]),
       }
+    case 'START_NEW_PRECHECK_ROUND': {
+      const nextRoundNumber = state.preCheckRounds.length + 1
+      const newRound = makePreCheckRound(nextRoundNumber)
+      return {
+        ...state,
+        preCheckRounds: [...state.preCheckRounds, newRound],
+        activePreCheckRoundId: newRound.id,
+      }
+    }
+    case 'SET_ACTIVE_PRECHECK_ROUND':
+      return { ...state, activePreCheckRoundId: action.roundId }
     case 'ADD_ACCEPTED_GOAL': {
       const goal: Goal = {
         id: genId(),
@@ -198,8 +255,8 @@ function reducer(state: SessionState, action: Action): SessionState {
     }
     case 'SET_AFFIRMATION_LEVEL': {
       const existing = state.integrationChecks[action.goalId] ?? makeInitialIntegration(action.goalId)
-      const affirmations = existing.affirmations.map((aff, i) =>
-        i === action.index
+      const affirmations = existing.affirmations.map((aff) =>
+        aff.voiceId === action.voiceId
           ? { ...aff, resultsByLevel: { ...aff.resultsByLevel, [action.level]: action.result } }
           : aff,
       )
@@ -217,6 +274,16 @@ function reducer(state: SessionState, action: Action): SessionState {
         ...state,
         potCreations: {
           ...state.potCreations,
+          [action.goalId]: { ...existing, ...action.patch },
+        },
+      }
+    }
+    case 'PATCH_INTERVENTION': {
+      const existing = state.interventions[action.goalId] ?? makeInitialIntervention(action.goalId)
+      return {
+        ...state,
+        interventions: {
+          ...state.interventions,
           [action.goalId]: { ...existing, ...action.patch },
         },
       }
@@ -241,6 +308,7 @@ interface SessionContextValue {
   dispatch: Dispatch<Action>
   getIntegration: (goalId: string) => IntegrationCheck
   getPot: (goalId: string) => PotCreation
+  getIntervention: (goalId: string) => Intervention
   getClosing: (goalId: string) => Closing
 }
 
@@ -254,6 +322,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     dispatch,
     getIntegration: (goalId) => state.integrationChecks[goalId] ?? makeInitialIntegration(goalId),
     getPot: (goalId) => state.potCreations[goalId] ?? makeInitialPot(goalId),
+    getIntervention: (goalId) => state.interventions[goalId] ?? makeInitialIntervention(goalId),
     getClosing: (goalId) => state.closings[goalId] ?? makeInitialClosing(goalId),
   }
 

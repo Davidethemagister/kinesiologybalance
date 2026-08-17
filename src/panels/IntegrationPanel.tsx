@@ -1,10 +1,12 @@
 import { useSession } from '../context/SessionContext'
+import { useSettings } from '../context/SettingsContext'
 import { StrongWeakToggle } from '../components/ui/StrongWeakToggle'
 import { EmptyGoalState } from '../components/EmptyGoalState'
 import { LEVELS } from '../data/affirmations'
 
 export function IntegrationPanel() {
   const { state, dispatch, getIntegration } = useSession()
+  const { isAffirmationVoiceEnabled } = useSettings()
   const activeGoal = state.goals.find((g) => g.id === state.activeGoalId)
 
   if (!activeGoal) {
@@ -12,6 +14,7 @@ export function IntegrationPanel() {
   }
 
   const integration = getIntegration(activeGoal.id)
+  const visibleAffirmations = integration.affirmations.filter((aff) => isAffirmationVoiceEnabled(aff.voiceId))
 
   return (
     <div className="max-w-5xl mx-auto pb-24">
@@ -58,8 +61,8 @@ export function IntegrationPanel() {
       </div>
 
       <div className="space-y-4 mb-6">
-        {integration.affirmations.map((aff, index) => (
-          <div key={index} className="bg-white rounded-2xl border border-slate-200 p-5">
+        {visibleAffirmations.map((aff) => (
+          <div key={aff.voiceId} className="bg-white rounded-2xl border border-slate-200 p-5">
             <p className="text-slate-700 mb-4">{aff.statement}</p>
             <div className="grid grid-cols-5 gap-2">
               {LEVELS.map((level) => (
@@ -73,7 +76,7 @@ export function IntegrationPanel() {
                         dispatch({
                           type: 'SET_AFFIRMATION_LEVEL',
                           goalId: activeGoal.id,
-                          index,
+                          voiceId: aff.voiceId,
                           level: level.id,
                           result: 'strong',
                         })
@@ -91,7 +94,7 @@ export function IntegrationPanel() {
                         dispatch({
                           type: 'SET_AFFIRMATION_LEVEL',
                           goalId: activeGoal.id,
-                          index,
+                          voiceId: aff.voiceId,
                           level: level.id,
                           result: 'weak',
                         })
