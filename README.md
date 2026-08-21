@@ -8,7 +8,8 @@ Pre-Checks supports repeating the standard test set in multiple rounds (e.g. if 
 
 - [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vitejs.dev/)
 - [Tailwind CSS](https://tailwindcss.com/) for styling
-- Local React state (`useReducer` + Context) for all session data — no backend yet. The state shape (`src/context/SessionContext.tsx`) is structured so it can later be persisted to `localStorage` or synced to Supabase without a redesign.
+- **Local-only storage** via [Dexie](https://dexie.org/) (IndexedDB), no backend, no login. This app runs for one practitioner on one device — client and session data never leaves the browser it's used in. There's no cloud copy, so use the **Backup** / **Restore** buttons on the Clients screen periodically (exports/imports the whole local database as one JSON file).
+- In-panel state during a session lives in a local `useReducer` (`src/context/SessionContext.tsx`), backend-agnostic by design — it's mirrored to Dexie by `src/lib/sessionSync.ts` on change and rehydrated by `src/lib/loadSession.ts` when a session is reopened.
 
 ## Running locally
 
@@ -31,8 +32,10 @@ npm run build
 src/
   types/       Shared TypeScript types for the whole session data model
   data/        Static reference data (pre-check names, Five Element emotion chart, affirmations, pot branches)
-  context/     SessionContext (app-wide session state via useReducer) and SettingsContext (per-device voice toggles, persisted to localStorage)
-  components/  Shared UI: EmotionChart (drill-down modal), StrongWeakToggle, Modal, EmptyGoalState
+  lib/         db.ts (Dexie schema), clients.ts (client/session CRUD), loadSession.ts / sessionSync.ts (load & save a session's panel data), dataExport.ts (per-client export + whole-database backup/restore)
+  context/     ClientsContext (client list + session records), SessionContext (in-session panel state via useReducer), SettingsContext (per-device voice toggles, persisted to localStorage)
+  views/       ClientListView, ClientDetailView — the screens before entering a session
+  components/  Shared UI: EmotionChart (drill-down modal), StrongWeakToggle, Modal, EmptyGoalState, ClientFormModal
   panels/      The six top-level panels (PreChecks, Goal, Integration, PotCreation, Closing, Intervention) plus Settings
 ```
 
@@ -48,6 +51,6 @@ A few emotion-word entries transcribed from the source material were unclear or 
 
 ## Next steps
 
-- **Supabase integration**: wire `SessionContext` up to Supabase (auth-free for now, or with practitioner auth) so sessions persist across reloads and devices. The reducer/state shape maps cleanly onto tables per panel (pre_checks, goals, integration_checks, pot_creations, closings).
 - **Nutrition module**: Panel 4's "Nutrition" sub-branch is currently a "Coming soon" placeholder. It will eventually become its own multi-page nutrition decision tree, built as a separate module.
-- **Deployment to Vercel**: no deployment config has been added yet. The app is a standard Vite SPA (`npm run build` outputs static assets to `dist/`), so it should deploy to Vercel with zero extra configuration — just connect the repo and use the Vite framework preset.
+- **Deployment**: no deployment config has been added yet. The app is a standard Vite SPA (`npm run build` outputs static assets to `dist/`) — deployable anywhere that serves static files. Since storage is entirely local to the browser, whichever device/browser it's opened in is where its data lives; there's no server-side component to deploy.
+- **Selling to other practitioners later**: if this ever needs to support multiple practitioners (not just one local device), the pieces are kept swappable on purpose — `SessionContext` doesn't know about storage at all, and the Supabase-specific version of `src/lib/{clients,loadSession,sessionSync}.ts` this app used previously (real auth, hosted Postgres, RLS scoped per practitioner) is recoverable from git history if that point is reached. `src/lib/db.ts`'s `PRACTITIONER_ID` constant is the one field a future multi-tenant setup would key ownership on.

@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { useAuth } from './AuthContext'
 import { genId } from '../utils/id'
 import { createInitialSessionState } from './SessionContext'
 import { saveSessionState } from '../lib/sessionSync'
@@ -49,23 +48,17 @@ interface ClientsContextValue {
 const ClientsContext = createContext<ClientsContextValue | null>(null)
 
 export function ClientsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [sessionsByClient, setSessionsByClient] = useState<Record<string, SessionRecord[] | undefined>>({})
 
   useEffect(() => {
-    if (!user) {
-      setClients([])
-      setSessionsByClient({})
-      return
-    }
     setLoading(true)
     clientsApi
-      .fetchClients(user.id)
+      .fetchClients()
       .then(setClients)
       .finally(() => setLoading(false))
-  }, [user])
+  }, [])
 
   async function loadSessionsForClient(clientId: string) {
     const rows = await clientsApi.fetchClientSessions(clientId)
@@ -73,8 +66,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   }
 
   async function addClient(input: NewClientInput): Promise<Client> {
-    if (!user) throw new Error('Not signed in')
-    const client = await clientsApi.insertClient(user.id, input)
+    const client = await clientsApi.insertClient(input)
     setClients((prev) => [...prev, client].sort((a, b) => a.fullName.localeCompare(b.fullName)))
     return client
   }
@@ -90,9 +82,8 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   }
 
   async function startSession(clientId: string): Promise<string> {
-    if (!user) throw new Error('Not signed in')
     const sessionId = genId()
-    await clientsApi.insertSession(user.id, clientId, sessionId)
+    await clientsApi.insertSession(clientId, sessionId)
     // Seed the session's first pre-check round immediately so re-opening it
     // (even before any edits) always finds a populated, well-formed state.
     await saveSessionState(sessionId, createInitialSessionState())

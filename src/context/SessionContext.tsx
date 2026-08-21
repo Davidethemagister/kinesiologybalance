@@ -16,8 +16,9 @@ import { AFFIRMATIONS, LEVELS } from '../data/affirmations'
 import { genId } from '../utils/id'
 
 // This state shape is intentionally flat and keyed by goalId for the
-// per-goal panels (Integration, Pot Creation, Intervention, Closing) so it can
-// later be mirrored into Supabase tables (or localStorage) with minimal reshaping.
+// per-goal panels (Integration, Pot Creation, Intervention, Closing) so it
+// maps cleanly onto the local Dexie tables (see src/lib/db.ts) with minimal
+// reshaping.
 export interface SessionState {
   preCheckRounds: PreCheckRound[]
   activePreCheckRoundId: string
@@ -130,8 +131,8 @@ function makeInitialClosing(goalId: string): Closing {
   }
 }
 
-// Exported so callers that own session persistence (e.g. ClientsContext, or a
-// future Supabase-backed loader) can seed a brand-new session's starting data.
+// Exported so callers that own session persistence (ClientsContext, via
+// src/lib/sessionSync.ts) can seed a brand-new session's starting data.
 export function createInitialSessionState(): SessionState {
   const firstRound = makePreCheckRound(1)
   return {
@@ -331,8 +332,9 @@ interface SessionProviderProps {
   // Seeds the reducer from an existing session's saved data (e.g. reopening a
   // past client visit) instead of always starting a brand-new session.
   initialState?: SessionState
-  // Fired after every state change so an owner (ClientsContext today, Supabase
-  // later) can persist the latest snapshot. Not used for the initial mount value.
+  // Fired after every state change so an owner (App.tsx's ClientSessionShell,
+  // via src/lib/sessionSync.ts) can persist the latest snapshot to Dexie. Not
+  // used for the initial mount value.
   onChange?: (state: SessionState) => void
 }
 

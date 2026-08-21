@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ClientFormModal } from '../components/ClientFormModal'
-import { useAuth } from '../context/AuthContext'
+import { exportAllData, importAllData } from '../lib/dataExport'
 import type { Client, NewClientInput } from '../context/ClientsContext'
 
 interface ClientListViewProps {
@@ -10,9 +10,23 @@ interface ClientListViewProps {
 }
 
 export function ClientListView({ clients, onSelectClient, onAddClient }: ClientListViewProps) {
-  const { user, signOut } = useAuth()
   const [query, setQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleImportFile(file: File) {
+    if (!confirm('This replaces ALL local data with the contents of this backup file. Continue?')) return
+    setImporting(true)
+    try {
+      await importAllData(file)
+      window.location.reload()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to restore backup')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const activeClients = clients.filter((c) => !c.archivedAt)
   const filtered =
@@ -27,10 +41,27 @@ export function ClientListView({ clients, onSelectClient, onAddClient }: ClientL
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 md:px-8 py-3 flex items-center justify-between gap-3">
         <h1 className="text-lg md:text-xl font-extrabold text-slate-800">Clients</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-400 truncate max-w-[160px] hidden sm:inline">{user?.email}</span>
-          <button onClick={() => signOut()} className="text-sm font-semibold text-slate-500 hover:text-slate-700">
-            Sign out
+          <button onClick={() => exportAllData()} className="text-sm font-semibold text-slate-500 hover:text-slate-700">
+            Backup
           </button>
+          <button
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50"
+          >
+            {importing ? 'Restoring…' : 'Restore'}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handleImportFile(file)
+              e.target.value = ''
+            }}
+          />
         </div>
       </header>
 

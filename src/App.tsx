@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { SessionProvider, useSession, type SessionState } from './context/SessionContext'
 import { SettingsProvider, useSettings } from './context/SettingsContext'
-import { AuthProvider, useAuth } from './context/AuthContext'
 import { ClientsProvider, useClients, type SessionRecord } from './context/ClientsContext'
-import { LoginView } from './views/LoginView'
 import { ClientListView } from './views/ClientListView'
 import { ClientDetailView } from './views/ClientDetailView'
 import { exportClientData } from './lib/dataExport'
@@ -383,28 +381,12 @@ function AppRouter() {
   )
 }
 
-function AuthGate() {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
-  }
-  if (!user) {
-    return <LoginView />
-  }
-  return (
-    <ClientsProvider>
-      <AppRouter />
-    </ClientsProvider>
-  )
-}
-
 export default function App() {
   return (
     <SettingsProvider>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
+      <ClientsProvider>
+        <AppRouter />
+      </ClientsProvider>
     </SettingsProvider>
   )
 }

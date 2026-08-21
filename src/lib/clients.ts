@@ -1,100 +1,105 @@
-import { supabase } from './supabaseClient'
-import type { Database } from '../types/database'
+import { db, PRACTITIONER_ID, type ClientRow } from './db'
+import { genId } from '../utils/id'
 import type { Client, NewClientInput, SessionRecord, SessionRecordStatus } from '../context/ClientsContext'
-
-type ClientRow = Database['public']['Tables']['clients']['Row']
 
 function rowToClient(row: ClientRow): Client {
   return {
     id: row.id,
-    fullName: row.full_name,
-    dateOfBirth: row.date_of_birth ?? '',
-    contactEmail: row.contact_email ?? '',
-    contactPhone: row.contact_phone ?? '',
-    notes: row.notes ?? '',
-    consentGiven: row.consent_given,
-    consentGivenAt: row.consent_given_at,
-    consentVersion: row.consent_version,
-    archivedAt: row.archived_at,
-    createdAt: row.created_at,
+    fullName: row.fullName,
+    dateOfBirth: row.dateOfBirth,
+    contactEmail: row.contactEmail,
+    contactPhone: row.contactPhone,
+    notes: row.notes,
+    consentGiven: row.consentGiven,
+    consentGivenAt: row.consentGivenAt,
+    consentVersion: row.consentVersion,
+    archivedAt: row.archivedAt,
+    createdAt: row.createdAt,
   }
 }
 
-export async function fetchClients(practitionerId: string): Promise<Client[]> {
-  const { data, error } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('practitioner_id', practitionerId)
-    .order('full_name', { ascending: true })
-  if (error) throw error
-  return (data ?? []).map(rowToClient)
+export async function fetchClients(): Promise<Client[]> {
+  const rows = await db.clients.where('practitionerId').equals(PRACTITIONER_ID).toArray()
+  return rows.map(rowToClient).sort((a, b) => a.fullName.localeCompare(b.fullName))
 }
 
-export async function insertClient(practitionerId: string, input: NewClientInput): Promise<Client> {
-  const { data, error } = await supabase
-    .from('clients')
-    .insert({
-      practitioner_id: practitionerId,
-      full_name: input.fullName,
-      date_of_birth: input.dateOfBirth || null,
-      contact_email: input.contactEmail || null,
-      contact_phone: input.contactPhone || null,
-      notes: input.notes,
-      consent_given: input.consentGiven,
-      consent_given_at: input.consentGivenAt,
-      consent_version: input.consentVersion,
-    })
-    .select('*')
-    .single()
-  if (error) throw error
-  return rowToClient(data)
+export async function insertClient(input: NewClientInput): Promise<Client> {
+  const row: ClientRow = {
+    id: genId(),
+    practitionerId: PRACTITIONER_ID,
+    fullName: input.fullName,
+    dateOfBirth: input.dateOfBirth,
+    contactEmail: input.contactEmail,
+    contactPhone: input.contactPhone,
+    notes: input.notes,
+    consentGiven: input.consentGiven,
+    consentGivenAt: input.consentGivenAt,
+    consentVersion: input.consentVersion,
+    archivedAt: null,
+    createdAt: new Date().toISOString(),
+  }
+  await db.clients.add(row)
+  return rowToClient(row)
 }
 
 export async function deleteClientRow(clientId: string): Promise<void> {
-  const { error } = await supabase.from('clients').delete().eq('id', clientId)
-  if (error) throw error
+  const sessionIds = await db.sessions.where('clientId').equals(clientId).primaryKeys()
+  const roundIds = sessionIds.length
+    ? await db.preCheckRounds.where('sessionId').anyOf(sessionIds).primaryKeys()
+    : []
+  const goalIds = sessionIds.length ? await db.goals.where('sessionId').anyOf(sessionIds).primaryKeys() : []
+  const integrationCheckIds = goalIds as string[] // integrationChecks/potCreations/closings/interventions are keyed by goalId
+
+  await db.transaction(
+    'rw',
+    [db.clients, db.sessions, db.preCheckRounds, db.preChecks, db.goals, db.integrationChecks, db.affirmations, db.potCreations, db.closings, db.interventions],
+    async () => {
+      await db.clients.delete(clientId)
+      await db.sessions.bulkDelete(sessionIds)
+      await db.preCheckRounds.bulkDelete(roundIds)
+      if (roundIds.length) await db.preChecks.where('roundId').anyOf(roundIds).delete()
+      await db.goals.bulkDelete(goalIds)
+      await db.integrationChecks.bulkDelete(integrationCheckIds)
+      if (integrationCheckIds.length) await db.affirmations.where('integrationCheckId').anyOf(integrationCheckIds).delete()
+      await db.potCreations.bulkDelete(goalIds)
+      await db.closings.bulkDelete(goalIds)
+      await db.interventions.bulkDelete(goalIds)
+    },
+  )
 }
 
 export async function fetchClientSessions(clientId: string): Promise<SessionRecord[]> {
-  const { data: sessions, error } = await supabase
-    .from('sessions')
-    .select('id, client_id, session_date, status')
-    .eq('client_id', clientId)
-    .order('session_date', { ascending: false })
-  if (error) throw error
-
-  const sessionIds = (sessions ?? []).map((s) => s.id)
+  const sessions = await db.sessions.where('clientId').equals(clientId).toArray()
+  const sessionIds = sessions.map((s) => s.id)
+  const goalRows = sessionIds.length ? await db.goals.where('sessionId').anyOf(sessionIds).toArray() : []
   const counts = new Map<string, number>()
-  if (sessionIds.length > 0) {
-    const { data: goalRows, error: goalsError } = await supabase
-      .from('goals')
-      .select('session_id')
-      .in('session_id', sessionIds)
-    if (goalsError) throw goalsError
-    for (const row of goalRows ?? []) {
-      counts.set(row.session_id, (counts.get(row.session_id) ?? 0) + 1)
-    }
+  for (const row of goalRows) {
+    counts.set(row.sessionId, (counts.get(row.sessionId) ?? 0) + 1)
   }
 
-  return (sessions ?? []).map((s) => ({
-    id: s.id,
-    clientId: s.client_id,
-    sessionDate: s.session_date,
-    status: s.status as SessionRecordStatus,
-    goalCount: counts.get(s.id) ?? 0,
-  }))
+  return sessions
+    .map((s) => ({
+      id: s.id,
+      clientId: s.clientId,
+      sessionDate: s.sessionDate,
+      status: s.status as SessionRecordStatus,
+      goalCount: counts.get(s.id) ?? 0,
+    }))
+    .sort((a, b) => (a.sessionDate < b.sessionDate ? 1 : -1))
 }
 
-export async function insertSession(practitionerId: string, clientId: string, sessionId: string): Promise<void> {
-  const { error } = await supabase.from('sessions').insert({
+export async function insertSession(clientId: string, sessionId: string): Promise<void> {
+  await db.sessions.add({
     id: sessionId,
-    practitioner_id: practitionerId,
-    client_id: clientId,
+    practitionerId: PRACTITIONER_ID,
+    clientId,
+    sessionDate: new Date().toISOString(),
+    status: 'in_progress',
+    activeGoalId: null,
+    activePreCheckRoundId: null,
   })
-  if (error) throw error
 }
 
 export async function updateSessionStatus(sessionId: string, status: SessionRecordStatus): Promise<void> {
-  const { error } = await supabase.from('sessions').update({ status }).eq('id', sessionId)
-  if (error) throw error
+  await db.sessions.update(sessionId, { status })
 }
