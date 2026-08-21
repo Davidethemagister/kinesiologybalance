@@ -11,7 +11,7 @@ import type {
   Level,
   StrongWeak,
 } from '../types'
-import { STANDARD_CHECKS, SURROGATION_CHECK } from '../data/preChecks'
+import { STANDARD_CHECKS, SURROGATION_CHECK, ASSEMBLAGE_POINT_CHECK } from '../data/preChecks'
 import { AFFIRMATIONS, LEVELS } from '../data/affirmations'
 import { genId } from '../utils/id'
 
@@ -60,7 +60,17 @@ function makeStandardChecks(): PreCheck[] {
     emotionEntry: null,
     notes: '',
   }
-  return [...standard, surrogation]
+  const assemblagePoint: PreCheck = {
+    id: genId(),
+    voiceId: ASSEMBLAGE_POINT_CHECK.id,
+    name: ASSEMBLAGE_POINT_CHECK.name,
+    source: 'standard',
+    result: null,
+    emotionAttached: null,
+    emotionEntry: null,
+    notes: '',
+  }
+  return [...standard, surrogation, assemblagePoint]
 }
 
 function makePreCheckRound(roundNumber: number): PreCheckRound {

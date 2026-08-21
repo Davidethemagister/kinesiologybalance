@@ -4,6 +4,9 @@ interface StrongWeakToggleProps {
   value: StrongWeak | null
   onChange: (value: StrongWeak) => void
   size?: 'sm' | 'md' | 'lg'
+  // Lets a check reuse the strong/weak result under the hood while showing
+  // different wording — e.g. Assemblage Point's aligned/out of balance.
+  labels?: { strong: string; weak: string }
 }
 
 const SIZE_CLASSES: Record<'sm' | 'md' | 'lg', string> = {
@@ -12,7 +15,7 @@ const SIZE_CLASSES: Record<'sm' | 'md' | 'lg', string> = {
   lg: 'px-6 py-4 text-base min-w-[110px]',
 }
 
-export function StrongWeakToggle({ value, onChange, size = 'md' }: StrongWeakToggleProps) {
+export function StrongWeakToggle({ value, onChange, size = 'md', labels }: StrongWeakToggleProps) {
   const base = SIZE_CLASSES[size]
   return (
     <div className="flex gap-2">
@@ -23,7 +26,7 @@ export function StrongWeakToggle({ value, onChange, size = 'md' }: StrongWeakTog
           value === 'strong' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
         }`}
       >
-        Strong
+        {labels?.strong ?? 'Strong'}
       </button>
       <button
         type="button"
@@ -32,7 +35,7 @@ export function StrongWeakToggle({ value, onChange, size = 'md' }: StrongWeakTog
           value === 'weak' ? 'bg-rose-500 text-white shadow-sm' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
         }`}
       >
-        Weak
+        {labels?.weak ?? 'Weak'}
       </button>
     </div>
   )

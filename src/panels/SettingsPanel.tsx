@@ -1,5 +1,5 @@
 import { useSettings } from '../context/SettingsContext'
-import { STANDARD_CHECKS, SURROGATION_CHECK } from '../data/preChecks'
+import { STANDARD_CHECKS, SURROGATION_CHECK, ASSEMBLAGE_POINT_CHECK } from '../data/preChecks'
 import { AFFIRMATIONS } from '../data/affirmations'
 
 function VoiceRow({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
@@ -47,6 +47,13 @@ export function SettingsPanel() {
           label={SURROGATION_CHECK.name}
           enabled={isPreCheckVoiceEnabled(SURROGATION_CHECK.id)}
           onToggle={() => setPreCheckVoiceEnabled(SURROGATION_CHECK.id, !isPreCheckVoiceEnabled(SURROGATION_CHECK.id))}
+        />
+        <VoiceRow
+          label={ASSEMBLAGE_POINT_CHECK.name}
+          enabled={isPreCheckVoiceEnabled(ASSEMBLAGE_POINT_CHECK.id)}
+          onToggle={() =>
+            setPreCheckVoiceEnabled(ASSEMBLAGE_POINT_CHECK.id, !isPreCheckVoiceEnabled(ASSEMBLAGE_POINT_CHECK.id))
+          }
         />
       </div>
 

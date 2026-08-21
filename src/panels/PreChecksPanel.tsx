@@ -3,7 +3,12 @@ import { useSession } from '../context/SessionContext'
 import { useSettings } from '../context/SettingsContext'
 import { StrongWeakToggle } from '../components/ui/StrongWeakToggle'
 import { EmotionChart } from '../components/EmotionChart'
+import { ASSEMBLAGE_POINT_CHECK } from '../data/preChecks'
 import type { EmotionEntry } from '../types'
+
+const ASSEMBLAGE_POINT_LABELS = { strong: 'Aligned', weak: 'Out of balance' }
+const ASSEMBLAGE_POINT_HINT =
+  "The soul's lens — assembles experience around your soul-level values and draws in what you need for your development. Aligned: a worthy moral compass. Out of balance: may show as crisis of faith, identity confusion, existential questioning, sudden shifts in values, or repetitive self-defeating patterns — often linked to trauma, addiction, prolonged negative influence, or indoctrination."
 
 export function PreChecksPanel() {
   const { state, dispatch } = useSession()
@@ -101,7 +106,9 @@ export function PreChecksPanel() {
       </p>
 
       <div className="space-y-3">
-        {visibleChecks.map((check) => (
+        {visibleChecks.map((check) => {
+          const isAssemblagePoint = check.voiceId === ASSEMBLAGE_POINT_CHECK.id
+          return (
           <div
             key={check.id}
             className={`bg-white rounded-2xl border border-slate-200 p-4 ${readOnly ? 'opacity-70' : ''}`}
@@ -114,9 +121,15 @@ export function PreChecksPanel() {
                 <span className="font-medium text-slate-800">{check.name}</span>
               </div>
               <div className={readOnly ? 'pointer-events-none' : ''}>
-                <StrongWeakToggle value={check.result} onChange={(r) => handleResult(check.id, r)} />
+                <StrongWeakToggle
+                  value={check.result}
+                  onChange={(r) => handleResult(check.id, r)}
+                  labels={isAssemblagePoint ? ASSEMBLAGE_POINT_LABELS : undefined}
+                />
               </div>
             </div>
+
+            {isAssemblagePoint && <p className="mt-2 text-xs text-slate-400">{ASSEMBLAGE_POINT_HINT}</p>}
 
             {check.emotionEntry && (
               <div className="mt-2 text-sm text-slate-500">
@@ -142,7 +155,8 @@ export function PreChecksPanel() {
               />
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {!readOnly && (
