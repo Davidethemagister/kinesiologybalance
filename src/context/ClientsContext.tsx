@@ -43,6 +43,7 @@ interface ClientsContextValue {
   removeClient: (clientId: string) => Promise<void>
   startSession: (clientId: string) => Promise<string>
   setSessionStatus: (sessionId: string, clientId: string, status: SessionRecordStatus) => Promise<void>
+  removeSession: (sessionId: string, clientId: string) => Promise<void>
 }
 
 const ClientsContext = createContext<ClientsContextValue | null>(null)
@@ -100,6 +101,15 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  async function removeSession(sessionId: string, clientId: string): Promise<void> {
+    await clientsApi.deleteSessionRow(sessionId)
+    setSessionsByClient((prev) => {
+      const list = prev[clientId]
+      if (!list) return prev
+      return { ...prev, [clientId]: list.filter((s) => s.id !== sessionId) }
+    })
+  }
+
   const value: ClientsContextValue = {
     clients,
     loading,
@@ -109,6 +119,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     removeClient,
     startSession,
     setSessionStatus,
+    removeSession,
   }
 
   return <ClientsContext.Provider value={value}>{children}</ClientsContext.Provider>

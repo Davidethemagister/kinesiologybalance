@@ -103,3 +103,34 @@ export async function insertSession(clientId: string, sessionId: string): Promis
 export async function updateSessionStatus(sessionId: string, status: SessionRecordStatus): Promise<void> {
   await db.sessions.update(sessionId, { status })
 }
+
+export async function deleteSessionRow(sessionId: string): Promise<void> {
+  const roundIds = await db.preCheckRounds.where('sessionId').equals(sessionId).primaryKeys()
+  const goalIds = await db.goals.where('sessionId').equals(sessionId).primaryKeys()
+
+  await db.transaction(
+    'rw',
+    [
+      db.sessions,
+      db.preCheckRounds,
+      db.preChecks,
+      db.goals,
+      db.integrationChecks,
+      db.affirmations,
+      db.potCreations,
+      db.closings,
+      db.interventions,
+    ],
+    async () => {
+      await db.sessions.delete(sessionId)
+      if (roundIds.length) await db.preChecks.where('roundId').anyOf(roundIds).delete()
+      await db.preCheckRounds.bulkDelete(roundIds)
+      await db.integrationChecks.bulkDelete(goalIds)
+      if (goalIds.length) await db.affirmations.where('integrationCheckId').anyOf(goalIds).delete()
+      await db.potCreations.bulkDelete(goalIds)
+      await db.closings.bulkDelete(goalIds)
+      await db.interventions.bulkDelete(goalIds)
+      await db.goals.bulkDelete(goalIds)
+    },
+  )
+}

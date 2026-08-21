@@ -7,6 +7,7 @@ interface ClientDetailViewProps {
   onBack: () => void
   onStartSession: () => void
   onOpenSession: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
   onDeleteClient: () => void
   onExportClient: () => void
 }
@@ -21,11 +22,14 @@ export function ClientDetailView({
   onBack,
   onStartSession,
   onOpenSession,
+  onDeleteSession,
   onDeleteClient,
   onExportClient,
 }: ClientDetailViewProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmName, setConfirmName] = useState('')
+  const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null)
+  const sessionToDelete = sessions.find((s) => s.id === deleteSessionId) ?? null
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
@@ -59,23 +63,34 @@ export function ClientDetailView({
         {sessions.length === 0 && <p className="text-slate-400">No sessions yet.</p>}
         <div className="space-y-2">
           {sessions.map((session) => (
-            <button
+            <div
               key={session.id}
-              onClick={() => onOpenSession(session.id)}
-              className="w-full text-left bg-white rounded-2xl border border-slate-200 p-4 hover:border-sage transition-colors flex items-center justify-between gap-3"
+              className="w-full bg-white rounded-2xl border border-slate-200 hover:border-sage transition-colors flex items-center gap-3"
             >
-              <div>
-                <div className="font-medium text-slate-800">{formatDate(session.sessionDate)}</div>
-                <div className="text-sm text-slate-500">{session.goalCount} goal(s)</div>
-              </div>
-              <span
-                className={`text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0 ${
-                  session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                }`}
+              <button
+                onClick={() => onOpenSession(session.id)}
+                className="flex-1 min-w-0 text-left p-4 flex items-center justify-between gap-3"
               >
-                {session.status === 'completed' ? 'Completed' : 'In progress'}
-              </span>
-            </button>
+                <div>
+                  <div className="font-medium text-slate-800">{formatDate(session.sessionDate)}</div>
+                  <div className="text-sm text-slate-500">{session.goalCount} goal(s)</div>
+                </div>
+                <span
+                  className={`text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0 ${
+                    session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}
+                >
+                  {session.status === 'completed' ? 'Completed' : 'In progress'}
+                </span>
+              </button>
+              <button
+                onClick={() => setDeleteSessionId(session.id)}
+                aria-label="Delete session"
+                className="flex-shrink-0 h-9 w-9 mr-3 rounded-full flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
           ))}
         </div>
 
@@ -93,6 +108,36 @@ export function ClientDetailView({
             Delete Client
           </button>
         </div>
+
+        {sessionToDelete && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40" onClick={() => setDeleteSessionId(null)} />
+            <div className="relative bg-cream rounded-3xl shadow-xl p-6 w-full max-w-sm">
+              <p className="text-lg font-medium text-slate-800 mb-2">Delete this session?</p>
+              <p className="text-sm text-slate-500 mb-4">
+                The session from {formatDate(sessionToDelete.sessionDate)} and everything recorded in it will be
+                permanently deleted. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteSessionId(null)}
+                  className="flex-1 rounded-2xl py-3 font-semibold bg-slate-100 text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    onDeleteSession(sessionToDelete.id)
+                    setDeleteSessionId(null)
+                  }}
+                  className="flex-1 rounded-2xl py-3 font-semibold bg-rose-500 text-white"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {deleteOpen && (
           <div className="fixed inset-0 z-40 flex items-center justify-center p-4">

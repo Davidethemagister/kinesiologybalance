@@ -29,6 +29,11 @@ interface StepMeta {
   softDeep: string
   softText: string
   meta: (state: SessionState, enabledAffirmationCount: number) => string
+  // Lets Home mark a step as done so a practitioner reopening an in-progress
+  // session can see at a glance where they left off, without re-checking
+  // each panel. Deliberately a light heuristic (last field a panel asks
+  // for), not full validation.
+  isComplete: (state: SessionState) => boolean
 }
 
 const STEPS: StepMeta[] = [
@@ -45,6 +50,10 @@ const STEPS: StepMeta[] = [
       const roundLabel = round ? `Round ${round.roundNumber}` : ''
       return `${round?.checks.length ?? 0} checks · ${roundLabel}`
     },
+    isComplete: (state) => {
+      const round = state.preCheckRounds.find((r) => r.id === state.activePreCheckRoundId)
+      return !!round && round.checks.length > 0 && round.checks.every((c) => c.result !== null)
+    },
   },
   {
     id: 'goal',
@@ -55,6 +64,7 @@ const STEPS: StepMeta[] = [
     softDeep: 'bg-elementSoftDeep-wood',
     softText: 'text-elementInk-wood',
     meta: (state) => `${state.goals.length} accepted`,
+    isComplete: (state) => state.activeGoalId !== null,
   },
   {
     id: 'integration',
@@ -65,6 +75,11 @@ const STEPS: StepMeta[] = [
     softDeep: 'bg-elementSoftDeep-fire',
     softText: 'text-elementInk-fire',
     meta: (_state, enabledAffirmationCount) => `${enabledAffirmationCount} affirmations`,
+    isComplete: (state) => {
+      if (!state.activeGoalId) return false
+      const ic = state.integrationChecks[state.activeGoalId]
+      return !!ic && ic.sabotageCheck !== null
+    },
   },
   {
     id: 'pot-creation',
@@ -75,6 +90,11 @@ const STEPS: StepMeta[] = [
     softDeep: 'bg-elementSoftDeep-earth',
     softText: 'text-elementInk-earth',
     meta: () => 'Emotion · Time · Branch',
+    isComplete: (state) => {
+      if (!state.activeGoalId) return false
+      const pot = state.potCreations[state.activeGoalId]
+      return !!pot && pot.branch !== null
+    },
   },
   {
     id: 'closing',
@@ -85,6 +105,11 @@ const STEPS: StepMeta[] = [
     softDeep: 'bg-elementSoftDeep-metal',
     softText: 'text-elementInk-metal',
     meta: () => 'Homework & next date',
+    isComplete: (state) => {
+      if (!state.activeGoalId) return false
+      const closing = state.closings[state.activeGoalId]
+      return !!closing && closing.retestConfirmed
+    },
   },
   {
     id: 'intervention',
@@ -95,6 +120,11 @@ const STEPS: StepMeta[] = [
     softDeep: 'bg-sage',
     softText: 'text-slate-800',
     meta: () => 'Technique & retest',
+    isComplete: (state) => {
+      if (!state.activeGoalId) return false
+      const intervention = state.interventions[state.activeGoalId]
+      return !!intervention && intervention.retestResult !== null
+    },
   },
 ]
 
@@ -120,21 +150,34 @@ function HomeView({
         )}
       </div>
       <div className="flex-1 grid grid-cols-2 md:grid-cols-3 auto-rows-fr gap-3 md:gap-5 px-4 md:px-8 pb-6 md:pb-8">
-        {STEPS.map((step) => (
-          <button
-            key={step.id}
-            onClick={() => onSelect(step.id)}
-            className={`${step.soft} ${step.softText} rounded-3xl p-5 md:p-7 text-left shadow-sm hover:shadow-md active:scale-[0.98] transition flex flex-col justify-between`}
-          >
-            <div>
-              <span className="block text-xs font-bold uppercase tracking-wide opacity-75">Step {step.index}</span>
-              <span className="block text-xl md:text-2xl font-bold mt-1">{step.tabLabel}</span>
-            </div>
-            <span className="block text-sm font-semibold opacity-80 mt-3">
-              {step.meta(state, enabledAffirmationCount)}
-            </span>
-          </button>
-        ))}
+        {STEPS.map((step) => {
+          const complete = step.isComplete(state)
+          return (
+            <button
+              key={step.id}
+              onClick={() => onSelect(step.id)}
+              className={`${step.soft} ${step.softText} rounded-3xl p-5 md:p-7 text-left shadow-sm hover:shadow-md active:scale-[0.98] transition flex flex-col justify-between`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="block text-xs font-bold uppercase tracking-wide opacity-75">Step {step.index}</span>
+                  {complete && (
+                    <span
+                      aria-label="Done"
+                      className="flex-shrink-0 h-5 w-5 rounded-full bg-white/70 flex items-center justify-center text-[11px] font-bold"
+                    >
+                      ✓
+                    </span>
+                  )}
+                </div>
+                <span className="block text-xl md:text-2xl font-bold mt-1">{step.tabLabel}</span>
+              </div>
+              <span className="block text-sm font-semibold opacity-80 mt-3">
+                {step.meta(state, enabledAffirmationCount)}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -249,7 +292,9 @@ function ClientSessionShell({
 }) {
   const [loadedState, setLoadedState] = useState<SessionState | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedBadgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -265,12 +310,27 @@ function ClientSessionShell({
     }
   }, [session.id])
 
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (savedBadgeTimer.current) clearTimeout(savedBadgeTimer.current)
+    }
+  }, [])
+
   function handleChange(data: SessionState) {
+    setSaveStatus('saving')
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      saveSessionState(session.id, data).catch((err) => {
-        console.error('Failed to save session', err)
-      })
+      saveSessionState(session.id, data)
+        .then(() => {
+          setSaveStatus('saved')
+          if (savedBadgeTimer.current) clearTimeout(savedBadgeTimer.current)
+          savedBadgeTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+        })
+        .catch((err) => {
+          console.error('Failed to save session', err)
+          setSaveStatus('idle')
+        })
     }, SAVE_DEBOUNCE_MS)
   }
 
@@ -296,14 +356,19 @@ function ClientSessionShell({
           <button onClick={onBack} className="text-sm font-semibold text-sage-dark truncate">
             ← {clientName}
           </button>
-          <button
-            onClick={onToggleStatus}
-            className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${
-              session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-            }`}
-          >
-            {session.status === 'completed' ? 'Completed' : 'In progress'}
-          </button>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-xs font-medium text-slate-400 w-12 text-right" aria-live="polite">
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : ''}
+            </span>
+            <button
+              onClick={onToggleStatus}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${
+                session.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {session.status === 'completed' ? 'Completed' : 'In progress'}
+            </button>
+          </div>
         </div>
         <AppShell />
       </div>
@@ -313,15 +378,26 @@ function ClientSessionShell({
 
 function AppRouter() {
   const [route, setRoute] = useState<Route>({ kind: 'clients' })
-  const { clients, loading, sessionsByClient, loadSessionsForClient, addClient, removeClient, startSession, setSessionStatus } =
-    useClients()
+  const {
+    clients,
+    loading,
+    sessionsByClient,
+    loadSessionsForClient,
+    addClient,
+    removeClient,
+    startSession,
+    setSessionStatus,
+    removeSession,
+  } = useClients()
 
   useEffect(() => {
     if (route.kind === 'client-detail' || route.kind === 'session') {
       loadSessionsForClient(route.clientId)
     }
+    // route.kind is included so returning to client-detail from a session
+    // (same clientId) refetches too, instead of showing a stale session list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route.kind === 'clients' ? null : route.clientId])
+  }, [route.kind, route.kind === 'clients' ? null : route.clientId])
 
   if (route.kind === 'clients') {
     if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
@@ -355,6 +431,7 @@ function AppRouter() {
           setRoute({ kind: 'session', sessionId, clientId: client.id })
         }}
         onOpenSession={(sessionId) => setRoute({ kind: 'session', sessionId, clientId: client.id })}
+        onDeleteSession={(sessionId) => removeSession(sessionId, client.id)}
         onDeleteClient={async () => {
           await removeClient(client.id)
           setRoute({ kind: 'clients' })

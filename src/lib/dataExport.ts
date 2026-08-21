@@ -48,6 +48,14 @@ type BackupPayload = {
   tables: Record<(typeof BACKUP_TABLES)[number], unknown[]>
 }
 
+const LAST_BACKUP_KEY = 'kinesio-session:last-backup-at'
+
+// There's no cloud copy of this data anymore, so the practitioner has no way
+// to know whether their last backup is recent unless we track it ourselves.
+export function getLastBackupAt(): string | null {
+  return localStorage.getItem(LAST_BACKUP_KEY)
+}
+
 // Whole-database backup — there's no cloud copy of this data anymore, so this
 // is the practitioner's own safety net. Restoring wipes and replaces every
 // local table, so the caller must confirm with the user first.
@@ -56,10 +64,12 @@ export async function exportAllData(): Promise<void> {
   for (const name of BACKUP_TABLES) {
     tables[name] = await db.table(name).toArray()
   }
+  const exportedAt = new Date().toISOString()
   download(
-    { version: 1, exportedAt: new Date().toISOString(), practitionerId: PRACTITIONER_ID, tables },
-    `kinesio-session-backup-${new Date().toISOString().slice(0, 10)}.json`,
+    { version: 1, exportedAt, practitionerId: PRACTITIONER_ID, tables },
+    `kinesio-session-backup-${exportedAt.slice(0, 10)}.json`,
   )
+  localStorage.setItem(LAST_BACKUP_KEY, exportedAt)
 }
 
 export async function importAllData(file: File): Promise<void> {

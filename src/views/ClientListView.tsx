@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ClientFormModal } from '../components/ClientFormModal'
-import { exportAllData, importAllData } from '../lib/dataExport'
+import { exportAllData, getLastBackupAt, importAllData } from '../lib/dataExport'
 import type { Client, NewClientInput } from '../context/ClientsContext'
 
 interface ClientListViewProps {
@@ -9,11 +9,32 @@ interface ClientListViewProps {
   onAddClient: (client: NewClientInput) => void
 }
 
+const STALE_BACKUP_DAYS = 7
+
+function formatBackupDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 export function ClientListView({ clients, onSelectClient, onAddClient }: ClientListViewProps) {
   const [query, setQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [backingUp, setBackingUp] = useState(false)
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(() => getLastBackupAt())
   const importInputRef = useRef<HTMLInputElement>(null)
+
+  const backupIsStale =
+    !lastBackupAt || Date.now() - new Date(lastBackupAt).getTime() > STALE_BACKUP_DAYS * 24 * 60 * 60 * 1000
+
+  async function handleBackup() {
+    setBackingUp(true)
+    try {
+      await exportAllData()
+      setLastBackupAt(getLastBackupAt())
+    } finally {
+      setBackingUp(false)
+    }
+  }
 
   async function handleImportFile(file: File) {
     if (!confirm('This replaces ALL local data with the contents of this backup file. Continue?')) return
@@ -41,8 +62,15 @@ export function ClientListView({ clients, onSelectClient, onAddClient }: ClientL
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 md:px-8 py-3 flex items-center justify-between gap-3">
         <h1 className="text-lg md:text-xl font-extrabold text-slate-800">Clients</h1>
         <div className="flex items-center gap-3">
-          <button onClick={() => exportAllData()} className="text-sm font-semibold text-slate-500 hover:text-slate-700">
-            Backup
+          <span className={`text-xs font-medium ${backupIsStale ? 'text-amber-600' : 'text-slate-400'}`}>
+            {lastBackupAt ? `Last backup: ${formatBackupDate(lastBackupAt)}` : 'Never backed up'}
+          </span>
+          <button
+            onClick={handleBackup}
+            disabled={backingUp}
+            className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50"
+          >
+            {backingUp ? 'Backing up…' : 'Backup'}
           </button>
           <button
             onClick={() => importInputRef.current?.click()}
