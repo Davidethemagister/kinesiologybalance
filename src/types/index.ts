@@ -81,8 +81,18 @@ export interface Closing {
   homework: string
 }
 
+export interface InterventionCheck {
+  id: string
+  voiceId: string | null // links back to a STANDARD_INTERVENTIONS id for settings filtering; null for custom
+  name: string
+  source: 'standard' | 'custom'
+  result: StrongWeak | null
+  notes: string
+}
+
 export interface Intervention {
   goalId: string
+  checks: InterventionCheck[]
   technique: string
   retestResult: StrongWeak | null
   notes: string

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { EmotionEntry, Level, StrongWeak } from '../types'
+import type { EmotionEntry, InterventionCheck, Level, StrongWeak } from '../types'
 
 // Local-only storage (IndexedDB via Dexie) — this app runs for one
 // practitioner on one device, so there's no auth and no sync. PRACTITIONER_ID
@@ -51,6 +51,9 @@ export interface PreCheckRow {
   emotionAttached: boolean | null
   emotionEntry: EmotionEntry | null
   notes: string
+  // Optional because rows saved before this field existed don't have it —
+  // src/lib/loadSession.ts falls back to arrival order for those.
+  order?: number
 }
 
 export interface GoalRow {
@@ -75,6 +78,9 @@ export interface AffirmationRow {
   voiceId: string
   statement: string
   resultsByLevel: Record<Level, StrongWeak | null>
+  // Optional because rows saved before this field existed don't have it —
+  // src/lib/loadSession.ts falls back to arrival order for those.
+  order?: number
 }
 
 export interface PotCreationRow {
@@ -99,6 +105,9 @@ export interface ClosingRow {
 
 export interface InterventionRow {
   goalId: string
+  // Optional because rows saved before the tickable-technique-list feature
+  // don't have it yet — src/lib/loadSession.ts defaults it to [] on read.
+  checks?: InterventionCheck[]
   technique: string
   retestResult: StrongWeak | null
   notes: string

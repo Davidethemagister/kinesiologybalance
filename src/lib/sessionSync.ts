@@ -45,7 +45,7 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
       )
 
       const checkRows = state.preCheckRounds.flatMap((round) =>
-        round.checks.map((check) => ({
+        round.checks.map((check, order) => ({
           id: check.id,
           roundId: round.id,
           voiceId: check.voiceId,
@@ -55,6 +55,7 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
           emotionAttached: check.emotionAttached,
           emotionEntry: check.emotionEntry,
           notes: check.notes,
+          order,
         })),
       )
       if (checkRows.length) await db.preChecks.bulkAdd(checkRows)
@@ -80,11 +81,12 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
       if (integrationRows.length) await db.integrationChecks.bulkAdd(integrationRows)
 
       const affirmationRows = Object.values(state.integrationChecks).flatMap((ic) =>
-        ic.affirmations.map((aff) => ({
+        ic.affirmations.map((aff, order) => ({
           integrationCheckId: ic.goalId,
           voiceId: aff.voiceId,
           statement: aff.statement,
           resultsByLevel: aff.resultsByLevel,
+          order,
         })),
       )
       if (affirmationRows.length) await db.affirmations.bulkAdd(affirmationRows)

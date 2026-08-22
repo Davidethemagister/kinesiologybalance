@@ -7,11 +7,13 @@ import type {
   PotCreation,
   Closing,
   Intervention,
+  InterventionCheck,
   EmotionEntry,
   Level,
   StrongWeak,
 } from '../types'
 import { STANDARD_CHECKS, SURROGATION_CHECK, ASSEMBLAGE_POINT_CHECK } from '../data/preChecks'
+import { STANDARD_INTERVENTIONS } from '../data/interventions'
 import { AFFIRMATIONS, LEVELS } from '../data/affirmations'
 import { genId } from '../utils/id'
 
@@ -111,9 +113,21 @@ function makeInitialPot(goalId: string): PotCreation {
   }
 }
 
+function makeInterventionChecks(): InterventionCheck[] {
+  return STANDARD_INTERVENTIONS.map((technique) => ({
+    id: genId(),
+    voiceId: technique.id,
+    name: technique.name,
+    source: 'standard',
+    result: null,
+    notes: '',
+  }))
+}
+
 function makeInitialIntervention(goalId: string): Intervention {
   return {
     goalId,
+    checks: makeInterventionChecks(),
     technique: '',
     retestResult: null,
     notes: '',
@@ -162,6 +176,9 @@ type Action =
   | { type: 'SET_AFFIRMATION_LEVEL'; goalId: string; voiceId: string; level: Level; result: StrongWeak }
   | { type: 'PATCH_POT'; goalId: string; patch: Partial<PotCreation> }
   | { type: 'PATCH_INTERVENTION'; goalId: string; patch: Partial<Intervention> }
+  | { type: 'SET_INTERVENTION_CHECK_RESULT'; goalId: string; id: string; result: StrongWeak }
+  | { type: 'SET_INTERVENTION_CHECK_NOTES'; goalId: string; id: string; notes: string }
+  | { type: 'ADD_CUSTOM_INTERVENTION_CHECK'; goalId: string; name: string }
   | { type: 'PATCH_CLOSING'; goalId: string; patch: Partial<Closing> }
 
 function patchRound(
@@ -298,6 +315,50 @@ function reducer(state: SessionState, action: Action): SessionState {
         interventions: {
           ...state.interventions,
           [action.goalId]: { ...existing, ...action.patch },
+        },
+      }
+    }
+    case 'SET_INTERVENTION_CHECK_RESULT': {
+      const existing = state.interventions[action.goalId] ?? makeInitialIntervention(action.goalId)
+      return {
+        ...state,
+        interventions: {
+          ...state.interventions,
+          [action.goalId]: {
+            ...existing,
+            checks: existing.checks.map((c) => (c.id === action.id ? { ...c, result: action.result } : c)),
+          },
+        },
+      }
+    }
+    case 'SET_INTERVENTION_CHECK_NOTES': {
+      const existing = state.interventions[action.goalId] ?? makeInitialIntervention(action.goalId)
+      return {
+        ...state,
+        interventions: {
+          ...state.interventions,
+          [action.goalId]: {
+            ...existing,
+            checks: existing.checks.map((c) => (c.id === action.id ? { ...c, notes: action.notes } : c)),
+          },
+        },
+      }
+    }
+    case 'ADD_CUSTOM_INTERVENTION_CHECK': {
+      const existing = state.interventions[action.goalId] ?? makeInitialIntervention(action.goalId)
+      const newCheck: InterventionCheck = {
+        id: genId(),
+        voiceId: null,
+        name: action.name,
+        source: 'custom',
+        result: null,
+        notes: '',
+      }
+      return {
+        ...state,
+        interventions: {
+          ...state.interventions,
+          [action.goalId]: { ...existing, checks: [...existing.checks, newCheck] },
         },
       }
     }

@@ -27,8 +27,12 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
     ? await db.affirmations.where('integrationCheckId').anyOf(integrationCheckIds).toArray()
     : []
 
+  // Querying by a non-unique index (roundId) doesn't preserve insertion
+  // order — IndexedDB falls back to primary-key order, which is a random
+  // UUID here — so sort explicitly by the saved position.
+  const sortedCheckRows = [...checkRows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   const checksByRound = new Map<string, typeof checkRows>()
-  for (const row of checkRows) {
+  for (const row of sortedCheckRows) {
     const list = checksByRound.get(row.roundId) ?? []
     list.push(row)
     checksByRound.set(row.roundId, list)
@@ -50,8 +54,10 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
     })),
   }))
 
+  // Same non-unique-index ordering issue as preChecks above.
+  const sortedAffirmationRows = [...affirmationRows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   const affirmationsByIntegrationCheck = new Map<string, Affirmation[]>()
-  for (const row of affirmationRows) {
+  for (const row of sortedAffirmationRows) {
     const list = affirmationsByIntegrationCheck.get(row.integrationCheckId) ?? []
     list.push({ voiceId: row.voiceId, statement: row.statement, resultsByLevel: row.resultsByLevel })
     affirmationsByIntegrationCheck.set(row.integrationCheckId, list)
@@ -81,7 +87,7 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
 
   const interventions: Record<string, Intervention> = {}
   for (const row of interventionRows) {
-    interventions[row.goalId] = { ...row }
+    interventions[row.goalId] = { ...row, checks: row.checks ?? [] }
   }
 
   const goals: Goal[] = goalRows.map((row) => ({

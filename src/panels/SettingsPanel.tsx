@@ -1,6 +1,7 @@
 import { useSettings } from '../context/SettingsContext'
 import { STANDARD_CHECKS, SURROGATION_CHECK, ASSEMBLAGE_POINT_CHECK } from '../data/preChecks'
 import { AFFIRMATIONS } from '../data/affirmations'
+import { STANDARD_INTERVENTIONS } from '../data/interventions'
 
 function VoiceRow({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
   return (
@@ -23,8 +24,14 @@ function VoiceRow({ label, enabled, onToggle }: { label: string; enabled: boolea
 }
 
 export function SettingsPanel() {
-  const { isPreCheckVoiceEnabled, setPreCheckVoiceEnabled, isAffirmationVoiceEnabled, setAffirmationVoiceEnabled } =
-    useSettings()
+  const {
+    isPreCheckVoiceEnabled,
+    setPreCheckVoiceEnabled,
+    isAffirmationVoiceEnabled,
+    setAffirmationVoiceEnabled,
+    isInterventionVoiceEnabled,
+    setInterventionVoiceEnabled,
+  } = useSettings()
 
   return (
     <div className="max-w-3xl mx-auto pb-24">
@@ -58,13 +65,25 @@ export function SettingsPanel() {
       </div>
 
       <h2 className="text-lg font-semibold text-slate-800 mb-3">Integration Affirmations</h2>
-      <div className="space-y-2">
+      <div className="space-y-2 mb-8">
         {AFFIRMATIONS.map((voice) => (
           <VoiceRow
             key={voice.id}
             label={voice.statement}
             enabled={isAffirmationVoiceEnabled(voice.id)}
             onToggle={() => setAffirmationVoiceEnabled(voice.id, !isAffirmationVoiceEnabled(voice.id))}
+          />
+        ))}
+      </div>
+
+      <h2 className="text-lg font-semibold text-slate-800 mb-3">Intervention Techniques</h2>
+      <div className="space-y-2">
+        {STANDARD_INTERVENTIONS.map((technique) => (
+          <VoiceRow
+            key={technique.id}
+            label={technique.name}
+            enabled={isInterventionVoiceEnabled(technique.id)}
+            onToggle={() => setInterventionVoiceEnabled(technique.id, !isInterventionVoiceEnabled(technique.id))}
           />
         ))}
       </div>
