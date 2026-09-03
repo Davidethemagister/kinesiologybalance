@@ -76,7 +76,7 @@ export function SettingsPanel() {
         ))}
       </div>
 
-      <h2 className="text-lg font-semibold text-slate-800 mb-3">Intervention Techniques</h2>
+      <h2 className="text-lg font-semibold text-slate-800 mb-3">Correction Techniques</h2>
       <div className="space-y-2">
         {STANDARD_INTERVENTIONS.map((technique) => (
           <VoiceRow

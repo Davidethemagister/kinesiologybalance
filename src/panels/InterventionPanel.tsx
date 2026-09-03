@@ -15,7 +15,7 @@ export function InterventionPanel() {
   const [customName, setCustomName] = useState('')
 
   if (!activeGoal) {
-    return <EmptyGoalState message="Select an active goal from the Goal panel to log an intervention." />
+    return <EmptyGoalState message="Select an active goal from the Goal panel to log a correction." />
   }
 
   const intervention = getIntervention(activeGoal.id)
@@ -132,7 +132,7 @@ export function InterventionPanel() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
-        <p className="font-medium text-slate-700 mb-3">Retest after intervention</p>
+        <p className="font-medium text-slate-700 mb-3">Retest after correction</p>
         <StrongWeakToggle value={intervention.retestResult} onChange={(r) => patch({ retestResult: r })} size="lg" />
       </div>
 

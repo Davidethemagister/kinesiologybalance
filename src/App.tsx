@@ -114,8 +114,8 @@ const STEPS: StepMeta[] = [
   {
     id: 'intervention',
     index: 6,
-    tabLabel: 'Intervention',
-    title: 'Intervention',
+    tabLabel: 'Correction',
+    title: 'Correction',
     soft: 'bg-sage/30',
     softDeep: 'bg-sage',
     softText: 'text-slate-800',
