@@ -87,7 +87,10 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
 
   const interventions: Record<string, Intervention> = {}
   for (const row of interventionRows) {
-    interventions[row.goalId] = { ...row, checks: row.checks ?? [] }
+    interventions[row.goalId] = {
+      goalId: row.goalId,
+      checks: (row.checks ?? []).map((c) => ({ ...c, done: c.done ?? false })),
+    }
   }
 
   const goals: Goal[] = goalRows.map((row) => ({

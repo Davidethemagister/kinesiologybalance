@@ -108,9 +108,6 @@ export interface InterventionRow {
   // Optional because rows saved before the tickable-technique-list feature
   // don't have it yet — src/lib/loadSession.ts defaults it to [] on read.
   checks?: InterventionCheck[]
-  technique: string
-  retestResult: StrongWeak | null
-  notes: string
 }
 
 const db = new Dexie('kinesio-session') as Dexie & {

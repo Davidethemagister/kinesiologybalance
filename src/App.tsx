@@ -119,11 +119,15 @@ const STEPS: StepMeta[] = [
     soft: 'bg-sage/30',
     softDeep: 'bg-sage',
     softText: 'text-slate-800',
-    meta: () => 'Technique & retest',
+    meta: (state) => {
+      const intervention = state.activeGoalId ? state.interventions[state.activeGoalId] : undefined
+      const doneCount = intervention?.checks.filter((c) => c.done).length ?? 0
+      return `${doneCount} done`
+    },
     isComplete: (state) => {
       if (!state.activeGoalId) return false
       const intervention = state.interventions[state.activeGoalId]
-      return !!intervention && intervention.retestResult !== null
+      return !!intervention && intervention.checks.some((c) => c.done)
     },
   },
 ]

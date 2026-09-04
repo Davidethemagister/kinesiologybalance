@@ -119,7 +119,7 @@ function makeInterventionChecks(): InterventionCheck[] {
     voiceId: technique.id,
     name: technique.name,
     source: 'standard',
-    result: null,
+    done: false,
     notes: '',
   }))
 }
@@ -128,9 +128,6 @@ function makeInitialIntervention(goalId: string): Intervention {
   return {
     goalId,
     checks: makeInterventionChecks(),
-    technique: '',
-    retestResult: null,
-    notes: '',
   }
 }
 
@@ -175,8 +172,7 @@ type Action =
   | { type: 'PATCH_INTEGRATION'; goalId: string; patch: Partial<IntegrationCheck> }
   | { type: 'SET_AFFIRMATION_LEVEL'; goalId: string; voiceId: string; level: Level; result: StrongWeak }
   | { type: 'PATCH_POT'; goalId: string; patch: Partial<PotCreation> }
-  | { type: 'PATCH_INTERVENTION'; goalId: string; patch: Partial<Intervention> }
-  | { type: 'SET_INTERVENTION_CHECK_RESULT'; goalId: string; id: string; result: StrongWeak }
+  | { type: 'SET_INTERVENTION_CHECK_DONE'; goalId: string; id: string; done: boolean }
   | { type: 'SET_INTERVENTION_CHECK_NOTES'; goalId: string; id: string; notes: string }
   | { type: 'ADD_CUSTOM_INTERVENTION_CHECK'; goalId: string; name: string }
   | { type: 'PATCH_CLOSING'; goalId: string; patch: Partial<Closing> }
@@ -308,17 +304,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         },
       }
     }
-    case 'PATCH_INTERVENTION': {
-      const existing = state.interventions[action.goalId] ?? makeInitialIntervention(action.goalId)
-      return {
-        ...state,
-        interventions: {
-          ...state.interventions,
-          [action.goalId]: { ...existing, ...action.patch },
-        },
-      }
-    }
-    case 'SET_INTERVENTION_CHECK_RESULT': {
+    case 'SET_INTERVENTION_CHECK_DONE': {
       const existing = state.interventions[action.goalId] ?? makeInitialIntervention(action.goalId)
       return {
         ...state,
@@ -326,7 +312,7 @@ function reducer(state: SessionState, action: Action): SessionState {
           ...state.interventions,
           [action.goalId]: {
             ...existing,
-            checks: existing.checks.map((c) => (c.id === action.id ? { ...c, result: action.result } : c)),
+            checks: existing.checks.map((c) => (c.id === action.id ? { ...c, done: action.done } : c)),
           },
         },
       }
@@ -351,7 +337,7 @@ function reducer(state: SessionState, action: Action): SessionState {
         voiceId: null,
         name: action.name,
         source: 'custom',
-        result: null,
+        done: false,
         notes: '',
       }
       return {
