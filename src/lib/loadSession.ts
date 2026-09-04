@@ -1,4 +1,5 @@
 import { db } from './db'
+import { GENERAL_CORRECTION_KEY } from '../context/SessionContext'
 import type { SessionState } from '../context/SessionContext'
 import type {
   PreCheckRound,
@@ -28,7 +29,7 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
     goalIds.length ? db.integrationChecks.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
     goalIds.length ? db.potCreations.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
     goalIds.length ? db.closings.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
-    goalIds.length ? db.interventions.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
+    db.interventions.where('goalId').anyOf([...goalIds, GENERAL_CORRECTION_KEY]).toArray(),
     goalIds.length ? db.nutritionAssessments.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
   ])
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { SessionProvider, useSession, type SessionState } from './context/SessionContext'
+import { SessionProvider, useSession, GENERAL_CORRECTION_KEY, type SessionState } from './context/SessionContext'
 import { SettingsProvider, useSettings } from './context/SettingsContext'
 import { ClientsProvider, useClients, type SessionRecord } from './context/ClientsContext'
 import { ClientListView } from './views/ClientListView'
@@ -120,13 +120,12 @@ const STEPS: StepMeta[] = [
     softDeep: 'bg-sage',
     softText: 'text-slate-800',
     meta: (state) => {
-      const intervention = state.activeGoalId ? state.interventions[state.activeGoalId] : undefined
+      const intervention = state.interventions[state.activeGoalId ?? GENERAL_CORRECTION_KEY]
       const doneCount = intervention?.checks.filter((c) => c.done).length ?? 0
       return `${doneCount} done`
     },
     isComplete: (state) => {
-      if (!state.activeGoalId) return false
-      const intervention = state.interventions[state.activeGoalId]
+      const intervention = state.interventions[state.activeGoalId ?? GENERAL_CORRECTION_KEY]
       return !!intervention && intervention.checks.some((c) => c.done)
     },
   },

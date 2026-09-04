@@ -127,6 +127,12 @@ function makeInterventionChecks(): InterventionCheck[] {
   }))
 }
 
+// Correction (Step 6) is reachable before any goal exists yet (e.g. a weak
+// Pre-Check auto-navigates here), so it can't hard-require an active goal.
+// When there isn't one, its data is filed under this fixed key instead of a
+// real goal id.
+export const GENERAL_CORRECTION_KEY = 'general'
+
 function makeInitialIntervention(goalId: string): Intervention {
   return {
     goalId,

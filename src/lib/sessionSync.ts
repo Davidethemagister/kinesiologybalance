@@ -1,4 +1,5 @@
 import { db } from './db'
+import { GENERAL_CORRECTION_KEY } from '../context/SessionContext'
 import type { SessionState } from '../context/SessionContext'
 
 // Replace-in-place: wipe every child row for this session, then reinsert the
@@ -33,7 +34,9 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
       if (existingGoalIds.length) await db.affirmations.where('integrationCheckId').anyOf(existingGoalIds).delete()
       await db.potCreations.bulkDelete(existingGoalIds)
       await db.closings.bulkDelete(existingGoalIds)
-      await db.interventions.bulkDelete(existingGoalIds)
+      // Correction can also be filed under a fixed non-goal key (see
+      // GENERAL_CORRECTION_KEY) when logged before any goal is active.
+      await db.interventions.bulkDelete([...existingGoalIds, GENERAL_CORRECTION_KEY])
       await db.nutritionAssessments.bulkDelete(existingGoalIds)
       await db.goals.where('sessionId').equals(sessionId).delete()
 

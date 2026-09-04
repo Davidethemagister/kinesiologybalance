@@ -1,23 +1,19 @@
 import { useState } from 'react'
-import { useSession } from '../context/SessionContext'
+import { useSession, GENERAL_CORRECTION_KEY } from '../context/SessionContext'
 import { useSettings } from '../context/SettingsContext'
-import { EmptyGoalState } from '../components/EmptyGoalState'
 import { STANDARD_INTERVENTIONS } from '../data/interventions'
 
 export function InterventionPanel() {
   const { state, dispatch, getIntervention } = useSession()
   const { isInterventionVoiceEnabled } = useSettings()
   const activeGoal = state.goals.find((g) => g.id === state.activeGoalId)
+  const goalKey = activeGoal?.id ?? GENERAL_CORRECTION_KEY
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const [addingCustom, setAddingCustom] = useState(false)
   const [customName, setCustomName] = useState('')
 
-  if (!activeGoal) {
-    return <EmptyGoalState message="Select an active goal from the Goal panel to log a correction." />
-  }
-
-  const intervention = getIntervention(activeGoal.id)
+  const intervention = getIntervention(goalKey)
   const infoByVoiceId = new Map(STANDARD_INTERVENTIONS.map((t) => [t.id, t]))
   const visibleChecks = intervention.checks.filter(
     (c) => c.source === 'custom' || isInterventionVoiceEnabled(c.voiceId as string),
@@ -44,7 +40,7 @@ export function InterventionPanel() {
   function submitCustom() {
     const name = customName.trim()
     if (!name) return
-    dispatch({ type: 'ADD_CUSTOM_INTERVENTION_CHECK', goalId: activeGoal!.id, name })
+    dispatch({ type: 'ADD_CUSTOM_INTERVENTION_CHECK', goalId: goalKey, name })
     setCustomName('')
     setAddingCustom(false)
   }
@@ -52,7 +48,13 @@ export function InterventionPanel() {
   return (
     <div className="max-w-5xl mx-auto pb-24">
       <p className="text-slate-500 mb-6">
-        Working on: <span className="font-medium text-slate-700">{activeGoal.goalStatement}</span>
+        {activeGoal ? (
+          <>
+            Working on: <span className="font-medium text-slate-700">{activeGoal.goalStatement}</span>
+          </>
+        ) : (
+          'No active goal — techniques logged here are session-wide.'
+        )}
       </p>
 
       <div className="space-y-3">
@@ -66,7 +68,7 @@ export function InterventionPanel() {
                   onClick={() =>
                     dispatch({
                       type: 'SET_INTERVENTION_CHECK_DONE',
-                      goalId: activeGoal.id,
+                      goalId: goalKey,
                       id: check.id,
                       done: !check.done,
                     })
@@ -120,7 +122,7 @@ export function InterventionPanel() {
                   onChange={(e) =>
                     dispatch({
                       type: 'SET_INTERVENTION_CHECK_NOTES',
-                      goalId: activeGoal.id,
+                      goalId: goalKey,
                       id: check.id,
                       notes: e.target.value,
                     })
