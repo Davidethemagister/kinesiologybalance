@@ -17,6 +17,7 @@ function formatBackupDate(iso: string): string {
 
 export function ClientListView({ clients, onSelectClient, onAddClient }: ClientListViewProps) {
   const [query, setQuery] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [importing, setImporting] = useState(false)
   const [backingUp, setBackingUp] = useState(false)
@@ -49,11 +50,11 @@ export function ClientListView({ clients, onSelectClient, onAddClient }: ClientL
     }
   }
 
-  const activeClients = clients.filter((c) => !c.archivedAt)
+  const scopedClients = clients.filter((c) => (showArchived ? !!c.archivedAt : !c.archivedAt))
   const filtered =
     query.trim() === ''
-      ? activeClients
-      : activeClients.filter((c) => c.fullName.toLowerCase().includes(query.trim().toLowerCase()))
+      ? scopedClients
+      : scopedClients.filter((c) => c.fullName.toLowerCase().includes(query.trim().toLowerCase()))
 
   const sorted = [...filtered].sort((a, b) => a.fullName.localeCompare(b.fullName))
 
@@ -101,9 +102,22 @@ export function ClientListView({ clients, onSelectClient, onAddClient }: ClientL
           className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sage mb-4"
         />
 
+        <button
+          onClick={() => setShowArchived((v) => !v)}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full mb-4 ${
+            showArchived ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
+          }`}
+        >
+          {showArchived ? 'Showing archived — back to active' : 'Show archived clients'}
+        </button>
+
         {sorted.length === 0 && (
           <p className="text-slate-400 text-center py-12">
-            {activeClients.length === 0 ? 'No clients yet — add your first one below.' : 'No clients match that search.'}
+            {scopedClients.length === 0
+              ? showArchived
+                ? 'No archived clients.'
+                : 'No clients yet — add your first one below.'
+              : 'No clients match that search.'}
           </p>
         )}
 
@@ -125,12 +139,14 @@ export function ClientListView({ clients, onSelectClient, onAddClient }: ClientL
           ))}
         </div>
 
-        <button
-          onClick={() => setAddOpen(true)}
-          className="w-full mt-4 rounded-2xl border-2 border-dashed border-slate-300 py-4 text-slate-500 font-medium hover:border-sage hover:text-sage-dark transition-colors"
-        >
-          + Add Client
-        </button>
+        {!showArchived && (
+          <button
+            onClick={() => setAddOpen(true)}
+            className="w-full mt-4 rounded-2xl border-2 border-dashed border-slate-300 py-4 text-slate-500 font-medium hover:border-sage hover:text-sage-dark transition-colors"
+          >
+            + Add Client
+          </button>
+        )}
       </div>
 
       <ClientFormModal isOpen={addOpen} onClose={() => setAddOpen(false)} onCreate={onAddClient} />

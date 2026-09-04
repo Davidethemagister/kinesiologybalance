@@ -10,6 +10,7 @@ interface ClientDetailViewProps {
   onOpenSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
   onEditClient: (patch: EditableClientFields) => void
+  onArchiveClient: (archived: boolean) => void
   onDeleteClient: () => void
   onExportClient: () => void
 }
@@ -26,6 +27,7 @@ export function ClientDetailView({
   onOpenSession,
   onDeleteSession,
   onEditClient,
+  onArchiveClient,
   onDeleteClient,
   onExportClient,
 }: ClientDetailViewProps) {
@@ -45,7 +47,12 @@ export function ClientDetailView({
 
       <div className="px-4 md:px-8 py-6 max-w-3xl w-full mx-auto flex-1">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-slate-800">{client.fullName}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-800">{client.fullName}</h1>
+            {client.archivedAt && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">Archived</span>
+            )}
+          </div>
           <button
             onClick={() => setEditOpen(true)}
             className="flex-shrink-0 text-sm font-semibold text-sage-dark mt-1"
@@ -114,12 +121,25 @@ export function ClientDetailView({
             Export Data (JSON)
           </button>
           <button
-            onClick={() => setDeleteOpen(true)}
-            className="flex-1 rounded-xl bg-rose-50 px-4 py-3 text-rose-700 font-medium"
+            onClick={() => onArchiveClient(!client.archivedAt)}
+            className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-slate-600 font-medium"
           >
-            Delete Client
+            {client.archivedAt ? 'Unarchive Client' : 'Archive Client'}
           </button>
+          {client.archivedAt && (
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="flex-1 rounded-xl bg-rose-50 px-4 py-3 text-rose-700 font-medium"
+            >
+              Delete Permanently
+            </button>
+          )}
         </div>
+        {!client.archivedAt && (
+          <p className="text-xs text-slate-400 mt-3 text-center sm:text-left">
+            Permanent deletion is only available once a client is archived.
+          </p>
+        )}
 
         {sessionToDelete && (
           <div className="fixed inset-0 z-40 flex items-center justify-center p-4">

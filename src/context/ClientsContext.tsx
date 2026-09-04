@@ -41,6 +41,7 @@ interface ClientsContextValue {
   loadSessionsForClient: (clientId: string) => Promise<void>
   addClient: (input: NewClientInput) => Promise<Client>
   updateClient: (clientId: string, patch: Partial<Omit<NewClientInput, 'consentGiven' | 'consentGivenAt' | 'consentVersion'>>) => Promise<void>
+  setClientArchived: (clientId: string, archived: boolean) => Promise<void>
   removeClient: (clientId: string) => Promise<void>
   startSession: (clientId: string) => Promise<string>
   setSessionStatus: (sessionId: string, clientId: string, status: SessionRecordStatus) => Promise<void>
@@ -80,6 +81,13 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     await clientsApi.updateClientRow(clientId, patch)
     setClients((prev) =>
       prev.map((c) => (c.id === clientId ? { ...c, ...patch } : c)).sort((a, b) => a.fullName.localeCompare(b.fullName)),
+    )
+  }
+
+  async function setClientArchived(clientId: string, archived: boolean): Promise<void> {
+    await clientsApi.setClientArchived(clientId, archived)
+    setClients((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, archivedAt: archived ? new Date().toISOString() : null } : c)),
     )
   }
 
@@ -128,6 +136,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     loadSessionsForClient,
     addClient,
     updateClient,
+    setClientArchived,
     removeClient,
     startSession,
     setSessionStatus,

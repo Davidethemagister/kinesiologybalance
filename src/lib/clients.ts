@@ -49,6 +49,10 @@ export async function updateClientRow(
   await db.clients.update(clientId, patch)
 }
 
+export async function setClientArchived(clientId: string, archived: boolean): Promise<void> {
+  await db.clients.update(clientId, { archivedAt: archived ? new Date().toISOString() : null })
+}
+
 export async function deleteClientRow(clientId: string): Promise<void> {
   const sessionIds = await db.sessions.where('clientId').equals(clientId).primaryKeys()
   const roundIds = sessionIds.length
