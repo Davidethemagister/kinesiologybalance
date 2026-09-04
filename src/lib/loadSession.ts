@@ -110,6 +110,15 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
       ...row,
       problemLocations: row.problemLocations ?? [],
       selectedFoods: row.selectedFoods ?? [],
+      selectedMechanisms: row.selectedMechanisms ?? [],
+      selectedCofactors: row.selectedCofactors ?? [],
+      selectedFunctionalSystems: row.selectedFunctionalSystems ?? [],
+      systemInvolved: row.systemInvolved ?? null,
+      selectedSystems: row.selectedSystems ?? [],
+      needsPrecision: row.needsPrecision ?? null,
+      precisionPath: row.precisionPath ?? null,
+      physiologyNeeds: row.physiologyNeeds ?? [],
+      rootCauseNotes: row.rootCauseNotes ?? '',
     }
   }
 

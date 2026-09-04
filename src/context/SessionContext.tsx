@@ -149,6 +149,15 @@ function makeInitialNutrition(goalId: string): NutritionAssessment {
     macroType: null,
     problemLocations: [],
     selectedFoods: [],
+    selectedMechanisms: [],
+    selectedCofactors: [],
+    selectedFunctionalSystems: [],
+    systemInvolved: null,
+    selectedSystems: [],
+    needsPrecision: null,
+    precisionPath: null,
+    physiologyNeeds: [],
+    rootCauseNotes: '',
     notes: '',
   }
 }
@@ -202,6 +211,12 @@ type Action =
   | { type: 'PATCH_NUTRITION'; goalId: string; patch: Partial<NutritionAssessment> }
   | { type: 'TOGGLE_NUTRITION_PROBLEM_LOCATION'; goalId: string; location: NutritionProblemLocation }
   | { type: 'TOGGLE_NUTRITION_FOOD'; goalId: string; foodId: string }
+  | {
+      type: 'TOGGLE_NUTRITION_SET'
+      goalId: string
+      field: 'selectedMechanisms' | 'selectedCofactors' | 'selectedFunctionalSystems' | 'selectedSystems' | 'physiologyNeeds'
+      itemId: string
+    }
 
 function patchRound(
   rounds: PreCheckRound[],
@@ -419,6 +434,19 @@ function reducer(state: SessionState, action: Action): SessionState {
         nutritionAssessments: {
           ...state.nutritionAssessments,
           [action.goalId]: { ...existing, selectedFoods },
+        },
+      }
+    }
+    case 'TOGGLE_NUTRITION_SET': {
+      const existing = state.nutritionAssessments[action.goalId] ?? makeInitialNutrition(action.goalId)
+      const current = existing[action.field]
+      const has = current.includes(action.itemId)
+      const next = has ? current.filter((i) => i !== action.itemId) : [...current, action.itemId]
+      return {
+        ...state,
+        nutritionAssessments: {
+          ...state.nutritionAssessments,
+          [action.goalId]: { ...existing, [action.field]: next },
         },
       }
     }

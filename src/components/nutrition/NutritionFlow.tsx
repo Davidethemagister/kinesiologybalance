@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { NutritionPage1 } from './NutritionPage1'
 import { NutritionPage2 } from './NutritionPage2'
+import { NutritionPage3 } from './NutritionPage3'
 
-type NutritionPageId = 1 | 2
+type NutritionPageId = 1 | 2 | 3
 
 // Nested inside Pot Creation's Nutrition sub-branch (see PotCreationPanel.tsx).
 // The source chart is explicitly non-linear ("jump between pages as needed,
@@ -30,9 +31,18 @@ export function NutritionFlow({ goalId }: { goalId: string }) {
         >
           Page 2 · Food lists
         </button>
+        <button
+          onClick={() => setPage(3)}
+          className={`px-3.5 py-2 rounded-full text-sm font-bold border transition-colors ${
+            page === 3 ? 'bg-sage text-slate-900 border-transparent' : 'bg-white text-slate-500 border-slate-200'
+          }`}
+        >
+          Page 3 · Mechanisms
+        </button>
       </div>
-      {page === 1 && <NutritionPage1 goalId={goalId} onGoToPage2={() => setPage(2)} />}
+      {page === 1 && <NutritionPage1 goalId={goalId} onGoToPage2={() => setPage(2)} onGoToPage3={() => setPage(3)} />}
       {page === 2 && <NutritionPage2 goalId={goalId} />}
+      {page === 3 && <NutritionPage3 goalId={goalId} />}
     </div>
   )
 }

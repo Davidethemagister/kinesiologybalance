@@ -5,7 +5,15 @@ import type { NutritionAssessment } from '../../types'
 // Page 1 ("core flow") of the Nutrition Kinesiology Complete Decision Tree.
 // Pages 3 (mechanisms/cofactors) and 4 (emotional-behavioural) are a later
 // phase — see the note at the bottom of this panel.
-export function NutritionPage1({ goalId, onGoToPage2 }: { goalId: string; onGoToPage2: () => void }) {
+export function NutritionPage1({
+  goalId,
+  onGoToPage2,
+  onGoToPage3,
+}: {
+  goalId: string
+  onGoToPage2: () => void
+  onGoToPage3: () => void
+}) {
   const { dispatch, getNutrition } = useSession()
   const nutrition = getNutrition(goalId)
 
@@ -103,7 +111,9 @@ export function NutritionPage1({ goalId, onGoToPage2 }: { goalId: string; onGoTo
               </div>
             )}
             {(nutrition.level === 'micro' || nutrition.level === 'both') && (
-              <p className="mt-3 text-xs text-slate-400">→ Mechanisms & cofactors (Page 3) — coming soon</p>
+              <button onClick={onGoToPage3} className="mt-3 text-xs text-sage-dark font-semibold">
+                → Go to Mechanisms &amp; Cofactors (Page 3)
+              </button>
             )}
           </div>
 
@@ -137,11 +147,14 @@ export function NutritionPage1({ goalId, onGoToPage2 }: { goalId: string; onGoTo
                 )
               })}
             </div>
+            <button onClick={onGoToPage3} className="mt-3 text-xs text-sage-dark font-semibold">
+              → Go to Mechanisms (Page 3) to find WHY
+            </button>
           </div>
 
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-400">
-            Full mechanism breakdown, cofactor/system reference tables, and the emotional/behavioural grid (Pages 3–4
-            of the source chart) are coming in a later update. Use the notes field below in the meantime.
+            The emotional/behavioural grid (Page 4 of the source chart) is coming in a later update. Use the notes
+            field below in the meantime.
           </div>
 
           <div>

@@ -90,6 +90,17 @@ export interface NutritionAssessment {
   // Page 2: ids of food-list line items (see src/data/nutritionFoods.ts)
   // identified as relevant.
   selectedFoods: string[]
+  // Page 3 (see src/data/nutritionMechanisms.ts for the reference lists
+  // these ids are drawn from).
+  selectedMechanisms: string[] // within intake/digestion/absorption
+  selectedCofactors: string[] // Utilisation: vitamins/minerals/electrolytes
+  selectedFunctionalSystems: string[] // Utilisation: which body function
+  systemInvolved: boolean | null
+  selectedSystems: string[]
+  needsPrecision: boolean | null
+  precisionPath: 'quick' | 'deep' | null
+  physiologyNeeds: string[] // deep path: oxygen/water/energy supported
+  rootCauseNotes: string // deep path
   notes: string
 }
 
