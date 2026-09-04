@@ -1,5 +1,14 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { EmotionEntry, InterventionCheck, Level, StrongWeak } from '../types'
+import type {
+  EmotionEntry,
+  InterventionCheck,
+  Level,
+  StrongWeak,
+  NutritionImbalanceType,
+  NutritionLevel,
+  MacroType,
+  NutritionProblemLocation,
+} from '../types'
 
 // Local-only storage (IndexedDB via Dexie) — this app runs for one
 // practitioner on one device, so there's no auth and no sync. PRACTITIONER_ID
@@ -110,6 +119,16 @@ export interface InterventionRow {
   checks?: InterventionCheck[]
 }
 
+export interface NutritionAssessmentRow {
+  goalId: string
+  involved: boolean | null
+  imbalanceType: NutritionImbalanceType | null
+  level: NutritionLevel | null
+  macroType: MacroType | null
+  problemLocations: NutritionProblemLocation[]
+  notes: string
+}
+
 const db = new Dexie('kinesio-session') as Dexie & {
   clients: EntityTable<ClientRow, 'id'>
   sessions: EntityTable<SessionRow, 'id'>
@@ -121,6 +140,7 @@ const db = new Dexie('kinesio-session') as Dexie & {
   potCreations: EntityTable<PotCreationRow, 'goalId'>
   closings: EntityTable<ClosingRow, 'goalId'>
   interventions: EntityTable<InterventionRow, 'goalId'>
+  nutritionAssessments: EntityTable<NutritionAssessmentRow, 'goalId'>
 }
 
 db.version(1).stores({
@@ -134,6 +154,10 @@ db.version(1).stores({
   potCreations: 'goalId',
   closings: 'goalId',
   interventions: 'goalId',
+})
+
+db.version(2).stores({
+  nutritionAssessments: 'goalId',
 })
 
 export { db }

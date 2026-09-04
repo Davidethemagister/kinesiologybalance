@@ -1,6 +1,15 @@
 import { db } from './db'
 import type { SessionState } from '../context/SessionContext'
-import type { PreCheckRound, Goal, IntegrationCheck, Affirmation, PotCreation, Closing, Intervention } from '../types'
+import type {
+  PreCheckRound,
+  Goal,
+  IntegrationCheck,
+  Affirmation,
+  PotCreation,
+  Closing,
+  Intervention,
+  NutritionAssessment,
+} from '../types'
 
 export async function loadSessionState(sessionId: string): Promise<SessionState> {
   const session = await db.sessions.get(sessionId)
@@ -14,12 +23,13 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
   const roundIds = roundRows.map((r) => r.id)
   const goalIds = goalRows.map((g) => g.id)
 
-  const [checkRows, integrationRows, potRows, closingRows, interventionRows] = await Promise.all([
+  const [checkRows, integrationRows, potRows, closingRows, interventionRows, nutritionRows] = await Promise.all([
     roundIds.length ? db.preChecks.where('roundId').anyOf(roundIds).toArray() : Promise.resolve([]),
     goalIds.length ? db.integrationChecks.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
     goalIds.length ? db.potCreations.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
     goalIds.length ? db.closings.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
     goalIds.length ? db.interventions.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
+    goalIds.length ? db.nutritionAssessments.where('goalId').anyOf(goalIds).toArray() : Promise.resolve([]),
   ])
 
   const integrationCheckIds = integrationRows.map((ic) => ic.goalId)
@@ -93,6 +103,11 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
     }
   }
 
+  const nutritionAssessments: Record<string, NutritionAssessment> = {}
+  for (const row of nutritionRows) {
+    nutritionAssessments[row.goalId] = { ...row, problemLocations: row.problemLocations ?? [] }
+  }
+
   const goals: Goal[] = goalRows.map((row) => ({
     id: row.id,
     issue: row.issue,
@@ -110,5 +125,6 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
     potCreations,
     closings,
     interventions,
+    nutritionAssessments,
   }
 }

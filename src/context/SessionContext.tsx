@@ -8,6 +8,8 @@ import type {
   Closing,
   Intervention,
   InterventionCheck,
+  NutritionAssessment,
+  NutritionProblemLocation,
   EmotionEntry,
   Level,
   StrongWeak,
@@ -30,6 +32,7 @@ export interface SessionState {
   potCreations: Record<string, PotCreation>
   closings: Record<string, Closing>
   interventions: Record<string, Intervention>
+  nutritionAssessments: Record<string, NutritionAssessment>
 }
 
 function emptyLevelResults(): Record<Level, StrongWeak | null> {
@@ -131,6 +134,18 @@ function makeInitialIntervention(goalId: string): Intervention {
   }
 }
 
+function makeInitialNutrition(goalId: string): NutritionAssessment {
+  return {
+    goalId,
+    involved: null,
+    imbalanceType: null,
+    level: null,
+    macroType: null,
+    problemLocations: [],
+    notes: '',
+  }
+}
+
 function makeInitialClosing(goalId: string): Closing {
   return {
     goalId,
@@ -155,6 +170,7 @@ export function createInitialSessionState(): SessionState {
     potCreations: {},
     closings: {},
     interventions: {},
+    nutritionAssessments: {},
   }
 }
 
@@ -176,6 +192,8 @@ type Action =
   | { type: 'SET_INTERVENTION_CHECK_NOTES'; goalId: string; id: string; notes: string }
   | { type: 'ADD_CUSTOM_INTERVENTION_CHECK'; goalId: string; name: string }
   | { type: 'PATCH_CLOSING'; goalId: string; patch: Partial<Closing> }
+  | { type: 'PATCH_NUTRITION'; goalId: string; patch: Partial<NutritionAssessment> }
+  | { type: 'TOGGLE_NUTRITION_PROBLEM_LOCATION'; goalId: string; location: NutritionProblemLocation }
 
 function patchRound(
   rounds: PreCheckRound[],
@@ -358,6 +376,30 @@ function reducer(state: SessionState, action: Action): SessionState {
         },
       }
     }
+    case 'PATCH_NUTRITION': {
+      const existing = state.nutritionAssessments[action.goalId] ?? makeInitialNutrition(action.goalId)
+      return {
+        ...state,
+        nutritionAssessments: {
+          ...state.nutritionAssessments,
+          [action.goalId]: { ...existing, ...action.patch },
+        },
+      }
+    }
+    case 'TOGGLE_NUTRITION_PROBLEM_LOCATION': {
+      const existing = state.nutritionAssessments[action.goalId] ?? makeInitialNutrition(action.goalId)
+      const has = existing.problemLocations.includes(action.location)
+      const problemLocations = has
+        ? existing.problemLocations.filter((l) => l !== action.location)
+        : [...existing.problemLocations, action.location]
+      return {
+        ...state,
+        nutritionAssessments: {
+          ...state.nutritionAssessments,
+          [action.goalId]: { ...existing, problemLocations },
+        },
+      }
+    }
     default:
       return state
   }
@@ -370,6 +412,7 @@ interface SessionContextValue {
   getPot: (goalId: string) => PotCreation
   getIntervention: (goalId: string) => Intervention
   getClosing: (goalId: string) => Closing
+  getNutrition: (goalId: string) => NutritionAssessment
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
@@ -406,6 +449,7 @@ export function SessionProvider({ children, initialState: initialStateProp, onCh
     getPot: (goalId) => state.potCreations[goalId] ?? makeInitialPot(goalId),
     getIntervention: (goalId) => state.interventions[goalId] ?? makeInitialIntervention(goalId),
     getClosing: (goalId) => state.closings[goalId] ?? makeInitialClosing(goalId),
+    getNutrition: (goalId) => state.nutritionAssessments[goalId] ?? makeInitialNutrition(goalId),
   }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

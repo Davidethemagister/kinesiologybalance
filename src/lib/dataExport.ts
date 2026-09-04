@@ -39,6 +39,7 @@ const BACKUP_TABLES = [
   'potCreations',
   'closings',
   'interventions',
+  'nutritionAssessments',
 ] as const
 
 type BackupPayload = {

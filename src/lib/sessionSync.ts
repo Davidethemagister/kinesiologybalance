@@ -20,6 +20,7 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
       db.potCreations,
       db.closings,
       db.interventions,
+      db.nutritionAssessments,
     ],
     async () => {
       // Clear this session's existing child rows before reinserting.
@@ -33,6 +34,7 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
       await db.potCreations.bulkDelete(existingGoalIds)
       await db.closings.bulkDelete(existingGoalIds)
       await db.interventions.bulkDelete(existingGoalIds)
+      await db.nutritionAssessments.bulkDelete(existingGoalIds)
       await db.goals.where('sessionId').equals(sessionId).delete()
 
       await db.preCheckRounds.bulkAdd(
@@ -99,6 +101,9 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
 
       const interventionRows = Object.values(state.interventions)
       if (interventionRows.length) await db.interventions.bulkAdd(interventionRows)
+
+      const nutritionRows = Object.values(state.nutritionAssessments)
+      if (nutritionRows.length) await db.nutritionAssessments.bulkAdd(nutritionRows)
 
       await db.sessions.update(sessionId, {
         activeGoalId: state.activeGoalId,
