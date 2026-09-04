@@ -19,6 +19,14 @@ export function InterventionPanel() {
     (c) => c.source === 'custom' || isInterventionVoiceEnabled(c.voiceId as string),
   )
 
+  // When a goal is active, anything logged under the general (no-goal)
+  // bucket before it was set would otherwise be invisible here — surface it
+  // instead of silently hiding it. Only items actually touched, so a fresh
+  // untouched general bucket doesn't clutter every goal-scoped session.
+  const generalIntervention = activeGoal ? getIntervention(GENERAL_CORRECTION_KEY) : null
+  const generalHighlights =
+    generalIntervention?.checks.filter((c) => c.done || c.notes.trim() !== '' || c.source === 'custom') ?? []
+
   function toggleExpanded(id: string) {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -56,6 +64,41 @@ export function InterventionPanel() {
           'No active goal — techniques logged here are session-wide.'
         )}
       </p>
+
+      {generalHighlights.length > 0 && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <p className="text-sm font-semibold text-amber-800 mb-2">Also logged before a goal was set</p>
+          <div className="space-y-2">
+            {generalHighlights.map((check) => (
+              <button
+                key={check.id}
+                onClick={() =>
+                  dispatch({
+                    type: 'SET_INTERVENTION_CHECK_DONE',
+                    goalId: GENERAL_CORRECTION_KEY,
+                    id: check.id,
+                    done: !check.done,
+                  })
+                }
+                className="w-full flex items-start gap-2 text-left text-sm"
+              >
+                <span
+                  className={`flex-shrink-0 h-5 w-5 mt-0.5 rounded-full flex items-center justify-center border-2 ${
+                    check.done ? 'bg-sage border-sage text-slate-900' : 'border-slate-300 text-transparent'
+                  }`}
+                  aria-hidden
+                >
+                  ✓
+                </span>
+                <span>
+                  <span className={check.done ? 'text-slate-500 line-through' : 'text-slate-700'}>{check.name}</span>
+                  {check.notes && <span className="block text-xs text-slate-400">{check.notes}</span>}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         {visibleChecks.map((check) => {
