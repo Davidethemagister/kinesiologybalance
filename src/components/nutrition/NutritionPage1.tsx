@@ -94,7 +94,13 @@ export function NutritionPage1({
                   {MACRO_TYPES.map((m) => (
                     <button
                       key={m.id}
-                      onClick={() => patch({ macroType: m.id })}
+                      onClick={() => {
+                        patch({ macroType: m.id })
+                        // Pure Macronutrient skips "Where is the problem?" entirely and
+                        // goes straight to Food Lists, per the source chart. "Both" stays
+                        // in this flow since Micro still needs Step 3.
+                        if (nutrition.level === 'macro') onGoToPage2()
+                      }}
                       className={`rounded-full px-4 py-2 text-sm font-semibold border ${
                         nutrition.macroType === m.id
                           ? 'bg-sage text-slate-900 border-transparent'
@@ -117,40 +123,42 @@ export function NutritionPage1({
             )}
           </div>
 
-          <div>
-            <p className="font-medium text-slate-700 mb-1">3. Where is the problem?</p>
-            <p className="text-xs text-slate-400 mb-3">Identify the level — check any that apply</p>
-            <div className="space-y-2">
-              {PROBLEM_LOCATIONS.map((loc) => {
-                const checked = nutrition.problemLocations.includes(loc.id)
-                return (
-                  <button
-                    key={loc.id}
-                    onClick={() => dispatch({ type: 'TOGGLE_NUTRITION_PROBLEM_LOCATION', goalId, location: loc.id })}
-                    className={`w-full flex items-center gap-3 text-left rounded-xl border p-3 transition-colors ${
-                      checked ? 'border-sage bg-sage/10' : 'border-slate-200 bg-white'
-                    }`}
-                  >
-                    <span
-                      className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center border-2 ${
-                        checked ? 'bg-sage border-sage text-slate-900' : 'border-slate-300 text-transparent'
+          {(nutrition.level === 'micro' || nutrition.level === 'both') && (
+            <div>
+              <p className="font-medium text-slate-700 mb-1">3. Where is the problem?</p>
+              <p className="text-xs text-slate-400 mb-3">Identify the level — check any that apply</p>
+              <div className="space-y-2">
+                {PROBLEM_LOCATIONS.map((loc) => {
+                  const checked = nutrition.problemLocations.includes(loc.id)
+                  return (
+                    <button
+                      key={loc.id}
+                      onClick={() => dispatch({ type: 'TOGGLE_NUTRITION_PROBLEM_LOCATION', goalId, location: loc.id })}
+                      className={`w-full flex items-center gap-3 text-left rounded-xl border p-3 transition-colors ${
+                        checked ? 'border-sage bg-sage/10' : 'border-slate-200 bg-white'
                       }`}
-                      aria-hidden
                     >
-                      ✓
-                    </span>
-                    <span>
-                      <span className="font-medium text-slate-800 text-sm block">{loc.label}</span>
-                      <span className="text-xs text-slate-400">{loc.hint}</span>
-                    </span>
-                  </button>
-                )
-              })}
+                      <span
+                        className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center border-2 ${
+                          checked ? 'bg-sage border-sage text-slate-900' : 'border-slate-300 text-transparent'
+                        }`}
+                        aria-hidden
+                      >
+                        ✓
+                      </span>
+                      <span>
+                        <span className="font-medium text-slate-800 text-sm block">{loc.label}</span>
+                        <span className="text-xs text-slate-400">{loc.hint}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={onGoToPage3} className="mt-3 text-xs text-sage-dark font-semibold">
+                → Go to Mechanisms (Page 3) to find WHY
+              </button>
             </div>
-            <button onClick={onGoToPage3} className="mt-3 text-xs text-sage-dark font-semibold">
-              → Go to Mechanisms (Page 3) to find WHY
-            </button>
-          </div>
+          )}
 
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-400">
             <p className="mb-2">
