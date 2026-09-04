@@ -250,3 +250,12 @@ export const FOOD_LISTS: FoodListGroup[] = [
 export function foodItemId(groupId: FoodListGroupId, subcategoryId: string, itemIndex: number): string {
   return `${groupId}:${subcategoryId}:${itemIndex}`
 }
+
+// Reverse lookup for display (e.g. "most relevant food" pickers, notes log).
+export function foodLabelFromId(id: string): string {
+  const [groupId, subcategoryId, indexStr] = id.split(':')
+  const group = FOOD_LISTS.find((g) => g.id === groupId)
+  const sub = group?.subcategories.find((s) => s.id === subcategoryId)
+  const item = sub?.items[Number(indexStr)]
+  return item && sub ? `${item} (${sub.name})` : id
+}

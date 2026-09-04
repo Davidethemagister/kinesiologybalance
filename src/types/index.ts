@@ -79,6 +79,7 @@ export type NutritionImbalanceType = 'deficiency' | 'excess' | 'sensitivity' | '
 export type NutritionLevel = 'macro' | 'micro' | 'both'
 export type MacroType = 'protein' | 'fats' | 'carbohydrates'
 export type NutritionProblemLocation = 'intake' | 'digestion' | 'absorption' | 'utilisation'
+export type NutritionInappropriateReason = 'quality' | 'quantity' | 'timing' | 'behavioural'
 
 export interface NutritionAssessment {
   goalId: string
@@ -90,6 +91,10 @@ export interface NutritionAssessment {
   // Page 2: ids of food-list line items (see src/data/nutritionFoods.ts)
   // identified as relevant.
   selectedFoods: string[]
+  // Page 2: which of selectedFoods is the single most relevant one, and why
+  // it isn't appropriate for this person. 'behavioural' routes to Page 4.
+  mostRelevantFoodId: string | null
+  inappropriateReason: NutritionInappropriateReason | null
   // Page 3 (see src/data/nutritionMechanisms.ts for the reference lists
   // these ids are drawn from).
   selectedMechanisms: string[] // within intake/digestion/absorption

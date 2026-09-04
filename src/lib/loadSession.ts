@@ -110,6 +110,8 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
       ...row,
       problemLocations: row.problemLocations ?? [],
       selectedFoods: row.selectedFoods ?? [],
+      mostRelevantFoodId: row.mostRelevantFoodId ?? null,
+      inappropriateReason: row.inappropriateReason ?? null,
       selectedMechanisms: row.selectedMechanisms ?? [],
       selectedCofactors: row.selectedCofactors ?? [],
       selectedFunctionalSystems: row.selectedFunctionalSystems ?? [],

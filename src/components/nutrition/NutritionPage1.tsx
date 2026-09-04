@@ -169,17 +169,6 @@ export function NutritionPage1({
               → Go to Emotional / Behavioural Factors (Page 4)
             </button>
           </div>
-
-          <div>
-            <label className="block font-medium text-slate-700 mb-2">Notes</label>
-            <textarea
-              value={nutrition.notes}
-              onChange={(e) => patch({ notes: e.target.value })}
-              rows={3}
-              placeholder="Findings, which food/nutrient, appropriateness, next steps..."
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage"
-            />
-          </div>
         </>
       )}
     </div>

@@ -7,6 +7,7 @@ import type {
   NutritionImbalanceType,
   NutritionLevel,
   MacroType,
+  NutritionInappropriateReason,
   NutritionProblemLocation,
 } from '../types'
 
@@ -130,6 +131,8 @@ export interface NutritionAssessmentRow {
   // (mechanisms) don't have these yet — src/lib/loadSession.ts defaults
   // them on read.
   selectedFoods?: string[]
+  mostRelevantFoodId?: string | null
+  inappropriateReason?: NutritionInappropriateReason | null
   selectedMechanisms?: string[]
   selectedCofactors?: string[]
   selectedFunctionalSystems?: string[]

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSession } from '../../context/SessionContext'
 import { NutritionPage1 } from './NutritionPage1'
 import { NutritionPage2 } from './NutritionPage2'
 import { NutritionPage3 } from './NutritionPage3'
@@ -43,9 +44,31 @@ export function NutritionFlow({ goalId }: { goalId: string }) {
           onGoToPage4={() => setPage(4)}
         />
       )}
-      {page === 2 && <NutritionPage2 goalId={goalId} />}
+      {page === 2 && <NutritionPage2 goalId={goalId} onGoToPage4={() => setPage(4)} />}
       {page === 3 && <NutritionPage3 goalId={goalId} />}
       {page === 4 && <NutritionPage4 goalId={goalId} />}
+      <NutritionNotesBar goalId={goalId} />
+    </div>
+  )
+}
+
+// Persistent working-notes scratchpad, kept visible under every page — per
+// the source chart, the practitioner jumps between pages non-linearly while
+// live with a client, so notes can't live on just one page.
+function NutritionNotesBar({ goalId }: { goalId: string }) {
+  const { dispatch, getNutrition } = useSession()
+  const nutrition = getNutrition(goalId)
+
+  return (
+    <div className="mt-4">
+      <label className="block font-medium text-slate-700 mb-2">Notes</label>
+      <textarea
+        value={nutrition.notes}
+        onChange={(e) => dispatch({ type: 'PATCH_NUTRITION', goalId, patch: { notes: e.target.value } })}
+        rows={3}
+        placeholder="Findings, which food/nutrient, appropriateness, next steps..."
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sage bg-white"
+      />
     </div>
   )
 }

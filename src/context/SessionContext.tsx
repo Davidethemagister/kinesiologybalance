@@ -149,6 +149,8 @@ function makeInitialNutrition(goalId: string): NutritionAssessment {
     macroType: null,
     problemLocations: [],
     selectedFoods: [],
+    mostRelevantFoodId: null,
+    inappropriateReason: null,
     selectedMechanisms: [],
     selectedCofactors: [],
     selectedFunctionalSystems: [],
