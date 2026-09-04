@@ -258,9 +258,9 @@ function AppShell() {
               <h1 className="text-2xl md:text-4xl font-bold mt-1">{currentStep.title}</h1>
             </div>
             <div className="flex-1 px-4 md:px-8 py-6">
-              {view === 'pre-checks' && <PreChecksPanel />}
+              {view === 'pre-checks' && <PreChecksPanel onNavigateToCorrection={() => setView('intervention')} />}
               {view === 'goal' && <GoalPanel />}
-              {view === 'integration' && <IntegrationPanel />}
+              {view === 'integration' && <IntegrationPanel onNavigateToCorrection={() => setView('intervention')} />}
               {view === 'pot-creation' && <PotCreationPanel />}
               {view === 'closing' && <ClosingPanel />}
               {view === 'intervention' && <InterventionPanel />}

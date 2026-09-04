@@ -10,7 +10,7 @@ const ASSEMBLAGE_POINT_LABELS = { strong: 'Aligned', weak: 'Out of balance' }
 const ASSEMBLAGE_POINT_HINT =
   "The soul's lens — assembles experience around your soul-level values and draws in what you need for your development. Aligned: a worthy moral compass. Out of balance: may show as crisis of faith, identity confusion, existential questioning, sudden shifts in values, or repetitive self-defeating patterns — often linked to trauma, addiction, prolonged negative influence, or indoctrination."
 
-export function PreChecksPanel() {
+export function PreChecksPanel({ onNavigateToCorrection }: { onNavigateToCorrection: () => void }) {
   const { state, dispatch } = useSession()
   const { isPreCheckVoiceEnabled } = useSettings()
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
@@ -45,6 +45,8 @@ export function PreChecksPanel() {
     setAskEmotionForId(null)
     if (attached) {
       setEmotionChartForId(id)
+    } else {
+      onNavigateToCorrection()
     }
   }
 
@@ -53,6 +55,12 @@ export function PreChecksPanel() {
       dispatch({ type: 'SET_PRECHECK_EMOTION_ENTRY', roundId: selectedRound.id, id: emotionChartForId, entry })
     }
     setEmotionChartForId(null)
+  }
+
+  function handleEmotionChartClose() {
+    const wasOpen = emotionChartForId !== null
+    setEmotionChartForId(null)
+    if (wasOpen) onNavigateToCorrection()
   }
 
   function toggleNotes(id: string) {
@@ -222,11 +230,7 @@ export function PreChecksPanel() {
         </div>
       )}
 
-      <EmotionChart
-        isOpen={!!emotionChartForId}
-        onClose={() => setEmotionChartForId(null)}
-        onConfirm={handleEmotionConfirm}
-      />
+      <EmotionChart isOpen={!!emotionChartForId} onClose={handleEmotionChartClose} onConfirm={handleEmotionConfirm} />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { StrongWeakToggle } from '../components/ui/StrongWeakToggle'
 import { EmptyGoalState } from '../components/EmptyGoalState'
 import { LEVELS } from '../data/affirmations'
 
-export function IntegrationPanel() {
+export function IntegrationPanel({ onNavigateToCorrection }: { onNavigateToCorrection: () => void }) {
   const { state, dispatch, getIntegration } = useSession()
   const { isAffirmationVoiceEnabled } = useSettings()
   const activeGoal = state.goals.find((g) => g.id === state.activeGoalId)
@@ -90,7 +90,7 @@ export function IntegrationPanel() {
                       S
                     </button>
                     <button
-                      onClick={() =>
+                      onClick={() => {
                         dispatch({
                           type: 'SET_AFFIRMATION_LEVEL',
                           goalId: activeGoal.id,
@@ -98,7 +98,8 @@ export function IntegrationPanel() {
                           level: level.id,
                           result: 'weak',
                         })
-                      }
+                        onNavigateToCorrection()
+                      }}
                       className={`rounded-lg py-2.5 text-xs font-bold ${
                         aff.resultsByLevel[level.id] === 'weak' ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700'
                       }`}
@@ -118,9 +119,10 @@ export function IntegrationPanel() {
         <p className="text-xs text-slate-400 mb-3">Open hand, thumb on exterior side of ring finger</p>
         <StrongWeakToggle
           value={integration.sabotageCheck}
-          onChange={(r) =>
+          onChange={(r) => {
             dispatch({ type: 'PATCH_INTEGRATION', goalId: activeGoal.id, patch: { sabotageCheck: r } })
-          }
+            if (r === 'weak') onNavigateToCorrection()
+          }}
           size="lg"
         />
         <textarea
