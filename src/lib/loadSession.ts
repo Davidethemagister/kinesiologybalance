@@ -106,7 +106,11 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
 
   const nutritionAssessments: Record<string, NutritionAssessment> = {}
   for (const row of nutritionRows) {
-    nutritionAssessments[row.goalId] = { ...row, problemLocations: row.problemLocations ?? [] }
+    nutritionAssessments[row.goalId] = {
+      ...row,
+      problemLocations: row.problemLocations ?? [],
+      selectedFoods: row.selectedFoods ?? [],
+    }
   }
 
   const goals: Goal[] = goalRows.map((row) => ({

@@ -4,7 +4,7 @@ import { EmotionChart } from '../components/EmotionChart'
 import { EmptyGoalState } from '../components/EmptyGoalState'
 import { PHYSICAL_SUB_BRANCHES, ENERGETIC_SUB_BRANCHES } from '../data/potBranches'
 import { ORGAN_CATEGORIES } from '../data/organCategories'
-import { NutritionPage1 } from '../components/nutrition/NutritionPage1'
+import { NutritionFlow } from '../components/nutrition/NutritionFlow'
 import type { EmotionEntry, PotCreation } from '../types'
 
 export function PotCreationPanel() {
@@ -157,7 +157,7 @@ export function PotCreationPanel() {
       {pot.branch === 'physical' && pot.subBranch === 'nutrition' && (
         <div className="mb-4">
           <p className="font-medium text-slate-700 mb-3">Nutrition Assessment</p>
-          <NutritionPage1 goalId={activeGoal.id} />
+          <NutritionFlow goalId={activeGoal.id} />
         </div>
       )}
 

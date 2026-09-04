@@ -72,9 +72,9 @@ export interface PotCreation {
   findings: string // free text for now, placeholder for future structured data
 }
 
-// Page 1 of "Nutrition Kinesiology — Complete Decision Tree" (source: Nutrition
-// chart .docx). Pages 2-4 (food lists, mechanisms/cofactors, emotional-
-// behavioural) are a later phase — this only covers the entry flow.
+// Nutrition Kinesiology — Complete Decision Tree (source: Nutrition chart
+// .docx). Page 1 (entry flow) and Page 2 (food lists) are covered so far;
+// Pages 3-4 (mechanisms/cofactors, emotional-behavioural) are a later phase.
 export type NutritionImbalanceType = 'deficiency' | 'excess' | 'sensitivity' | 'absorption' | 'hydration'
 export type NutritionLevel = 'macro' | 'micro' | 'both'
 export type MacroType = 'protein' | 'fats' | 'carbohydrates'
@@ -87,6 +87,9 @@ export interface NutritionAssessment {
   level: NutritionLevel | null
   macroType: MacroType | null
   problemLocations: NutritionProblemLocation[]
+  // Page 2: ids of food-list line items (see src/data/nutritionFoods.ts)
+  // identified as relevant.
+  selectedFoods: string[]
   notes: string
 }
 

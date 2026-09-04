@@ -126,6 +126,9 @@ export interface NutritionAssessmentRow {
   level: NutritionLevel | null
   macroType: MacroType | null
   problemLocations: NutritionProblemLocation[]
+  // Optional because rows saved before Page 2 (food lists) don't have it yet
+  // — src/lib/loadSession.ts defaults it to [] on read.
+  selectedFoods?: string[]
   notes: string
 }
 

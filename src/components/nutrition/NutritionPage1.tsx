@@ -3,9 +3,9 @@ import { IMBALANCE_TYPES, NUTRITION_LEVELS, MACRO_TYPES, PROBLEM_LOCATIONS } fro
 import type { NutritionAssessment } from '../../types'
 
 // Page 1 ("core flow") of the Nutrition Kinesiology Complete Decision Tree.
-// Pages 2 (food lists), 3 (mechanisms/cofactors) and 4 (emotional-
-// behavioural) are a later phase — see the note at the bottom of this panel.
-export function NutritionPage1({ goalId }: { goalId: string }) {
+// Pages 3 (mechanisms/cofactors) and 4 (emotional-behavioural) are a later
+// phase — see the note at the bottom of this panel.
+export function NutritionPage1({ goalId, onGoToPage2 }: { goalId: string; onGoToPage2: () => void }) {
   const { dispatch, getNutrition } = useSession()
   const nutrition = getNutrition(goalId)
 
@@ -97,7 +97,9 @@ export function NutritionPage1({ goalId }: { goalId: string }) {
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-slate-400">→ Food lists (Page 2) — coming soon</p>
+                <button onClick={onGoToPage2} className="mt-2 text-xs text-sage-dark font-semibold">
+                  → Go to Food Lists (Page 2)
+                </button>
               </div>
             )}
             {(nutrition.level === 'micro' || nutrition.level === 'both') && (
@@ -138,9 +140,8 @@ export function NutritionPage1({ goalId }: { goalId: string }) {
           </div>
 
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-400">
-            Full mechanism breakdown, food lists, cofactor/system reference tables, and the emotional/behavioural
-            grid (Pages 2–4 of the source chart) are coming in a later update. Use the notes field below in the
-            meantime.
+            Full mechanism breakdown, cofactor/system reference tables, and the emotional/behavioural grid (Pages 3–4
+            of the source chart) are coming in a later update. Use the notes field below in the meantime.
           </div>
 
           <div>

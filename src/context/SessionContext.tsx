@@ -148,6 +148,7 @@ function makeInitialNutrition(goalId: string): NutritionAssessment {
     level: null,
     macroType: null,
     problemLocations: [],
+    selectedFoods: [],
     notes: '',
   }
 }
@@ -200,6 +201,7 @@ type Action =
   | { type: 'PATCH_CLOSING'; goalId: string; patch: Partial<Closing> }
   | { type: 'PATCH_NUTRITION'; goalId: string; patch: Partial<NutritionAssessment> }
   | { type: 'TOGGLE_NUTRITION_PROBLEM_LOCATION'; goalId: string; location: NutritionProblemLocation }
+  | { type: 'TOGGLE_NUTRITION_FOOD'; goalId: string; foodId: string }
 
 function patchRound(
   rounds: PreCheckRound[],
@@ -403,6 +405,20 @@ function reducer(state: SessionState, action: Action): SessionState {
         nutritionAssessments: {
           ...state.nutritionAssessments,
           [action.goalId]: { ...existing, problemLocations },
+        },
+      }
+    }
+    case 'TOGGLE_NUTRITION_FOOD': {
+      const existing = state.nutritionAssessments[action.goalId] ?? makeInitialNutrition(action.goalId)
+      const has = existing.selectedFoods.includes(action.foodId)
+      const selectedFoods = has
+        ? existing.selectedFoods.filter((f) => f !== action.foodId)
+        : [...existing.selectedFoods, action.foodId]
+      return {
+        ...state,
+        nutritionAssessments: {
+          ...state.nutritionAssessments,
+          [action.goalId]: { ...existing, selectedFoods },
         },
       }
     }
