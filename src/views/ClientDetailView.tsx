@@ -103,6 +103,14 @@ export function ClientDetailView({
                 </span>
               </button>
               <button
+                disabled
+                aria-label="Print session (coming soon)"
+                title="Print — coming soon"
+                className="flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-slate-200 cursor-not-allowed"
+              >
+                🖨
+              </button>
+              <button
                 onClick={() => setDeleteSessionId(session.id)}
                 aria-label="Delete session"
                 className="flex-shrink-0 h-9 w-9 mr-3 rounded-full flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
@@ -119,6 +127,13 @@ export function ClientDetailView({
             className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-slate-600 font-medium"
           >
             Export Data (JSON)
+          </button>
+          <button
+            disabled
+            title="Print — coming soon"
+            className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-slate-400 font-medium cursor-not-allowed"
+          >
+            Print (coming soon)
           </button>
           <button
             onClick={() => onArchiveClient(!client.archivedAt)}
