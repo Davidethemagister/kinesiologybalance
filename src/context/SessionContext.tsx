@@ -158,6 +158,8 @@ function makeInitialNutrition(goalId: string): NutritionAssessment {
     precisionPath: null,
     physiologyNeeds: [],
     rootCauseNotes: '',
+    selectedEmotionalFactors: [],
+    emotionalNotes: '',
     notes: '',
   }
 }
@@ -214,7 +216,13 @@ type Action =
   | {
       type: 'TOGGLE_NUTRITION_SET'
       goalId: string
-      field: 'selectedMechanisms' | 'selectedCofactors' | 'selectedFunctionalSystems' | 'selectedSystems' | 'physiologyNeeds'
+      field:
+        | 'selectedMechanisms'
+        | 'selectedCofactors'
+        | 'selectedFunctionalSystems'
+        | 'selectedSystems'
+        | 'physiologyNeeds'
+        | 'selectedEmotionalFactors'
       itemId: string
     }
 

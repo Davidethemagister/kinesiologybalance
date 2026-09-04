@@ -3,16 +3,16 @@ import { IMBALANCE_TYPES, NUTRITION_LEVELS, MACRO_TYPES, PROBLEM_LOCATIONS } fro
 import type { NutritionAssessment } from '../../types'
 
 // Page 1 ("core flow") of the Nutrition Kinesiology Complete Decision Tree.
-// Pages 3 (mechanisms/cofactors) and 4 (emotional-behavioural) are a later
-// phase — see the note at the bottom of this panel.
 export function NutritionPage1({
   goalId,
   onGoToPage2,
   onGoToPage3,
+  onGoToPage4,
 }: {
   goalId: string
   onGoToPage2: () => void
   onGoToPage3: () => void
+  onGoToPage4: () => void
 }) {
   const { dispatch, getNutrition } = useSession()
   const nutrition = getNutrition(goalId)
@@ -153,8 +153,13 @@ export function NutritionPage1({
           </div>
 
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-400">
-            The emotional/behavioural grid (Page 4 of the source chart) is coming in a later update. Use the notes
-            field below in the meantime.
+            <p className="mb-2">
+              If patterns aren't shifting with physical intervention alone, or stress/cravings/mood/motivation look
+              key, check emotional/behavioural factors.
+            </p>
+            <button onClick={onGoToPage4} className="text-sage-dark font-semibold">
+              → Go to Emotional / Behavioural Factors (Page 4)
+            </button>
           </div>
 
           <div>

@@ -139,6 +139,8 @@ export interface NutritionAssessmentRow {
   precisionPath?: 'quick' | 'deep' | null
   physiologyNeeds?: string[]
   rootCauseNotes?: string
+  selectedEmotionalFactors?: string[]
+  emotionalNotes?: string
   notes: string
 }
 

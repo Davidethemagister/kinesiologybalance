@@ -119,6 +119,8 @@ export async function loadSessionState(sessionId: string): Promise<SessionState>
       precisionPath: row.precisionPath ?? null,
       physiologyNeeds: row.physiologyNeeds ?? [],
       rootCauseNotes: row.rootCauseNotes ?? '',
+      selectedEmotionalFactors: row.selectedEmotionalFactors ?? [],
+      emotionalNotes: row.emotionalNotes ?? '',
     }
   }
 

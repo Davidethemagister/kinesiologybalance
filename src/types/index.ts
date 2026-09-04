@@ -101,6 +101,9 @@ export interface NutritionAssessment {
   precisionPath: 'quick' | 'deep' | null
   physiologyNeeds: string[] // deep path: oxygen/water/energy supported
   rootCauseNotes: string // deep path
+  // Page 4 (see src/data/nutritionEmotional.ts).
+  selectedEmotionalFactors: string[]
+  emotionalNotes: string
   notes: string
 }
 
