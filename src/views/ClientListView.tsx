@@ -133,7 +133,7 @@ export function ClientListView({ clients, onSelectClient, onAddClient }: ClientL
         </button>
       </div>
 
-      <ClientFormModal isOpen={addOpen} onClose={() => setAddOpen(false)} onSubmit={onAddClient} />
+      <ClientFormModal isOpen={addOpen} onClose={() => setAddOpen(false)} onCreate={onAddClient} />
     </div>
   )
 }

@@ -40,6 +40,7 @@ interface ClientsContextValue {
   sessionsByClient: Record<string, SessionRecord[] | undefined>
   loadSessionsForClient: (clientId: string) => Promise<void>
   addClient: (input: NewClientInput) => Promise<Client>
+  updateClient: (clientId: string, patch: Partial<Omit<NewClientInput, 'consentGiven' | 'consentGivenAt' | 'consentVersion'>>) => Promise<void>
   removeClient: (clientId: string) => Promise<void>
   startSession: (clientId: string) => Promise<string>
   setSessionStatus: (sessionId: string, clientId: string, status: SessionRecordStatus) => Promise<void>
@@ -70,6 +71,16 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     const client = await clientsApi.insertClient(input)
     setClients((prev) => [...prev, client].sort((a, b) => a.fullName.localeCompare(b.fullName)))
     return client
+  }
+
+  async function updateClient(
+    clientId: string,
+    patch: Partial<Omit<NewClientInput, 'consentGiven' | 'consentGivenAt' | 'consentVersion'>>,
+  ): Promise<void> {
+    await clientsApi.updateClientRow(clientId, patch)
+    setClients((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, ...patch } : c)).sort((a, b) => a.fullName.localeCompare(b.fullName)),
+    )
   }
 
   async function removeClient(clientId: string): Promise<void> {
@@ -116,6 +127,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     sessionsByClient,
     loadSessionsForClient,
     addClient,
+    updateClient,
     removeClient,
     startSession,
     setSessionStatus,

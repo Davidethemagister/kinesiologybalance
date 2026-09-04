@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from 'dexie'
+import Dexie, { type EntityTable, type Table } from 'dexie'
 import type {
   EmotionEntry,
   InterventionCheck,
@@ -159,5 +159,19 @@ db.version(1).stores({
 db.version(2).stores({
   nutritionAssessments: 'goalId',
 })
+
+// Every table holding one row per goal, keyed by `goalId` as its primary
+// key. Centralized so every cascade-delete path (client delete, session
+// delete, session save's wipe-and-reinsert) stays in sync automatically —
+// a table missing from a hand-written list here silently orphans its rows
+// when the owning goal/session/client is deleted. Add new goalId-keyed
+// tables here, not just at their individual call sites.
+export const GOAL_KEYED_TABLES: Table<unknown, string>[] = [
+  db.integrationChecks,
+  db.potCreations,
+  db.closings,
+  db.interventions,
+  db.nutritionAssessments,
+]
 
 export { db }

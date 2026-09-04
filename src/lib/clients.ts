@@ -1,4 +1,4 @@
-import { db, PRACTITIONER_ID, type ClientRow } from './db'
+import { db, PRACTITIONER_ID, GOAL_KEYED_TABLES, type ClientRow } from './db'
 import { genId } from '../utils/id'
 import type { Client, NewClientInput, SessionRecord, SessionRecordStatus } from '../context/ClientsContext'
 
@@ -42,28 +42,32 @@ export async function insertClient(input: NewClientInput): Promise<Client> {
   return rowToClient(row)
 }
 
+export async function updateClientRow(
+  clientId: string,
+  patch: Partial<Pick<ClientRow, 'fullName' | 'dateOfBirth' | 'contactEmail' | 'contactPhone' | 'notes'>>,
+): Promise<void> {
+  await db.clients.update(clientId, patch)
+}
+
 export async function deleteClientRow(clientId: string): Promise<void> {
   const sessionIds = await db.sessions.where('clientId').equals(clientId).primaryKeys()
   const roundIds = sessionIds.length
     ? await db.preCheckRounds.where('sessionId').anyOf(sessionIds).primaryKeys()
     : []
   const goalIds = sessionIds.length ? await db.goals.where('sessionId').anyOf(sessionIds).primaryKeys() : []
-  const integrationCheckIds = goalIds as string[] // integrationChecks/potCreations/closings/interventions are keyed by goalId
+  const integrationCheckIds = goalIds as string[] // affirmations are keyed by integrationCheckId, which equals goalId
 
   await db.transaction(
     'rw',
-    [db.clients, db.sessions, db.preCheckRounds, db.preChecks, db.goals, db.integrationChecks, db.affirmations, db.potCreations, db.closings, db.interventions],
+    [db.clients, db.sessions, db.preCheckRounds, db.preChecks, db.goals, db.affirmations, ...GOAL_KEYED_TABLES],
     async () => {
       await db.clients.delete(clientId)
       await db.sessions.bulkDelete(sessionIds)
       await db.preCheckRounds.bulkDelete(roundIds)
       if (roundIds.length) await db.preChecks.where('roundId').anyOf(roundIds).delete()
       await db.goals.bulkDelete(goalIds)
-      await db.integrationChecks.bulkDelete(integrationCheckIds)
       if (integrationCheckIds.length) await db.affirmations.where('integrationCheckId').anyOf(integrationCheckIds).delete()
-      await db.potCreations.bulkDelete(goalIds)
-      await db.closings.bulkDelete(goalIds)
-      await db.interventions.bulkDelete(goalIds)
+      for (const table of GOAL_KEYED_TABLES) await table.bulkDelete(goalIds)
     },
   )
 }
@@ -110,26 +114,13 @@ export async function deleteSessionRow(sessionId: string): Promise<void> {
 
   await db.transaction(
     'rw',
-    [
-      db.sessions,
-      db.preCheckRounds,
-      db.preChecks,
-      db.goals,
-      db.integrationChecks,
-      db.affirmations,
-      db.potCreations,
-      db.closings,
-      db.interventions,
-    ],
+    [db.sessions, db.preCheckRounds, db.preChecks, db.goals, db.affirmations, ...GOAL_KEYED_TABLES],
     async () => {
       await db.sessions.delete(sessionId)
       if (roundIds.length) await db.preChecks.where('roundId').anyOf(roundIds).delete()
       await db.preCheckRounds.bulkDelete(roundIds)
-      await db.integrationChecks.bulkDelete(goalIds)
       if (goalIds.length) await db.affirmations.where('integrationCheckId').anyOf(goalIds).delete()
-      await db.potCreations.bulkDelete(goalIds)
-      await db.closings.bulkDelete(goalIds)
-      await db.interventions.bulkDelete(goalIds)
+      for (const table of GOAL_KEYED_TABLES) await table.bulkDelete(goalIds)
       await db.goals.bulkDelete(goalIds)
     },
   )

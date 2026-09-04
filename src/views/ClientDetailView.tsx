@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ClientFormModal, type EditableClientFields } from '../components/ClientFormModal'
 import type { Client, SessionRecord } from '../context/ClientsContext'
 
 interface ClientDetailViewProps {
@@ -8,6 +9,7 @@ interface ClientDetailViewProps {
   onStartSession: () => void
   onOpenSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
+  onEditClient: (patch: EditableClientFields) => void
   onDeleteClient: () => void
   onExportClient: () => void
 }
@@ -23,9 +25,11 @@ export function ClientDetailView({
   onStartSession,
   onOpenSession,
   onDeleteSession,
+  onEditClient,
   onDeleteClient,
   onExportClient,
 }: ClientDetailViewProps) {
+  const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmName, setConfirmName] = useState('')
   const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null)
@@ -40,7 +44,15 @@ export function ClientDetailView({
       </header>
 
       <div className="px-4 md:px-8 py-6 max-w-3xl w-full mx-auto flex-1">
-        <h1 className="text-2xl font-bold text-slate-800">{client.fullName}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-slate-800">{client.fullName}</h1>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex-shrink-0 text-sm font-semibold text-sage-dark mt-1"
+          >
+            Edit
+          </button>
+        </div>
         <div className="text-sm text-slate-500 mt-1 space-x-3">
           {client.dateOfBirth && <span>DOB {client.dateOfBirth}</span>}
           {client.contactEmail && <span>{client.contactEmail}</span>}
@@ -175,6 +187,13 @@ export function ClientDetailView({
             </div>
           </div>
         )}
+
+        <ClientFormModal
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+          client={client}
+          onUpdate={(_id, patch) => onEditClient(patch)}
+        />
       </div>
     </div>
   )

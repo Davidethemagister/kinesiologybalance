@@ -1,4 +1,4 @@
-import { db } from './db'
+import { db, GOAL_KEYED_TABLES } from './db'
 import { GENERAL_CORRECTION_KEY } from '../context/SessionContext'
 import type { SessionState } from '../context/SessionContext'
 
@@ -11,18 +11,7 @@ import type { SessionState } from '../context/SessionContext'
 export async function saveSessionState(sessionId: string, state: SessionState): Promise<void> {
   await db.transaction(
     'rw',
-    [
-      db.sessions,
-      db.preCheckRounds,
-      db.preChecks,
-      db.goals,
-      db.integrationChecks,
-      db.affirmations,
-      db.potCreations,
-      db.closings,
-      db.interventions,
-      db.nutritionAssessments,
-    ],
+    [db.sessions, db.preCheckRounds, db.preChecks, db.goals, db.affirmations, ...GOAL_KEYED_TABLES],
     async () => {
       // Clear this session's existing child rows before reinserting.
       const existingRoundIds = await db.preCheckRounds.where('sessionId').equals(sessionId).primaryKeys()
@@ -30,14 +19,13 @@ export async function saveSessionState(sessionId: string, state: SessionState): 
       await db.preCheckRounds.where('sessionId').equals(sessionId).delete()
 
       const existingGoalIds = await db.goals.where('sessionId').equals(sessionId).primaryKeys()
-      await db.integrationChecks.bulkDelete(existingGoalIds)
       if (existingGoalIds.length) await db.affirmations.where('integrationCheckId').anyOf(existingGoalIds).delete()
-      await db.potCreations.bulkDelete(existingGoalIds)
-      await db.closings.bulkDelete(existingGoalIds)
       // Correction can also be filed under a fixed non-goal key (see
       // GENERAL_CORRECTION_KEY) when logged before any goal is active.
-      await db.interventions.bulkDelete([...existingGoalIds, GENERAL_CORRECTION_KEY])
-      await db.nutritionAssessments.bulkDelete(existingGoalIds)
+      for (const table of GOAL_KEYED_TABLES) {
+        const keys = table === db.interventions ? [...existingGoalIds, GENERAL_CORRECTION_KEY] : existingGoalIds
+        await table.bulkDelete(keys)
+      }
       await db.goals.where('sessionId').equals(sessionId).delete()
 
       await db.preCheckRounds.bulkAdd(

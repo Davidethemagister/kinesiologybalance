@@ -387,6 +387,7 @@ function AppRouter() {
     sessionsByClient,
     loadSessionsForClient,
     addClient,
+    updateClient,
     removeClient,
     startSession,
     setSessionStatus,
@@ -435,6 +436,7 @@ function AppRouter() {
         }}
         onOpenSession={(sessionId) => setRoute({ kind: 'session', sessionId, clientId: client.id })}
         onDeleteSession={(sessionId) => removeSession(sessionId, client.id)}
+        onEditClient={(patch) => updateClient(client.id, patch)}
         onDeleteClient={async () => {
           await removeClient(client.id)
           setRoute({ kind: 'clients' })
